@@ -36,14 +36,14 @@ jobs:
     - name: Check code formatting
       run: |
         source .venv/bin/activate
-        black . --check
-        isort . --check-only
+        black . --check --exclude '\.venv|\.git'
+        isort . --check-only --skip-glob '.*'
         
     - name: Lint with flake8
       run: |
         source .venv/bin/activate
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,.git
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=.venv,.git
         
     - name: Run tests with pytest
       run: |
