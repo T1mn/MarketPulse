@@ -1,11 +1,12 @@
 import time
+
 import schedule
 
-import news_fetcher
 import ai_analyzer
+import config
+import news_fetcher
 import notifier
 import state_manager
-import config
 
 
 def run_job():

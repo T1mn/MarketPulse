@@ -1,8 +1,10 @@
-import requests
 import urllib.parse
-import config
 from datetime import datetime
+
 import pytz
+import requests
+
+import config
 
 
 def format_datetime(timestamp):

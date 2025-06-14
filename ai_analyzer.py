@@ -1,7 +1,9 @@
-import os
-import config
-from google import genai
 import json
+import os
+
+from google import genai
+
+import config
 
 
 def analyze_news_article(article):

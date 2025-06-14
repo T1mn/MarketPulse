@@ -1,8 +1,10 @@
 import os
-import requests
-import config
-from datetime import datetime, timedelta
 import time
+from datetime import datetime, timedelta
+
+import requests
+
+import config
 
 
 class NewsFetcher:
