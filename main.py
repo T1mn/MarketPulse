@@ -76,7 +76,7 @@ def run_job():
 
 # --- 程序主入口 ---
 if __name__ == "__main__":
-    print("金融资讯AI分析推送服务启动...")
+    print("MarketPulse-金融资讯AI分析推送服务启动...")
     
     # 立即执行一次任务，方便测试
     run_job()
