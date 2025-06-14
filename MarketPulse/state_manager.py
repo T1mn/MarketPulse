@@ -1,7 +1,7 @@
 import json
 import os
 
-import config
+from MarketPulse import config
 
 
 def load_processed_ids():

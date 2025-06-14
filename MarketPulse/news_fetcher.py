@@ -2,7 +2,7 @@ from datetime import datetime
 
 import requests
 
-import config
+from MarketPulse import config
 
 
 class NewsFetcher:

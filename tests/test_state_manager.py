@@ -2,6 +2,7 @@ import json
 from unittest.mock import mock_open, patch
 
 import pytest
+
 from MarketPulse import state_manager
 
 

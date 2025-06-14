@@ -2,7 +2,7 @@ import json
 
 from google import genai
 
-import config
+from MarketPulse import config
 
 
 def analyze_news_article(article):

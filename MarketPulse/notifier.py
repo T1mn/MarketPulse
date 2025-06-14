@@ -4,7 +4,7 @@ from datetime import datetime
 import pytz
 import requests
 
-import config
+from MarketPulse import config
 
 
 def format_datetime(timestamp):
