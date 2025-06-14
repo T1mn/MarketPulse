@@ -1,0 +1,13 @@
+# 环境变量文件
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 日志文件
+*.log
+
+# 本地数据文件
+processed_news.json 
