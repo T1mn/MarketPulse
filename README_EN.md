@@ -1,13 +1,15 @@
-# Financial News AI Analysis Notification Service
+# MarketPulse - Financial News AI Analysis Notification Service
 
-A Python-based financial news analysis and notification service that automatically fetches the latest financial news, analyzes it using Google Gemini AI, and delivers insights to your devices through the Bark notification service.
+MarketPulse is a lightweight financial news analysis and notification service built on top of Google Gemini AI and Bark push service. It automatically fetches the latest financial news, performs intelligent analysis, and delivers insights to your devices.
 
-## Features
+> This project is completely open source. Community contributions and improvements are welcome. If you find this project helpful, please consider giving it a star ⭐️
 
-- 📰 Automatic fetching of latest financial news (supports Reuters, Bloomberg, and other authoritative sources)
-- 🤖 Intelligent analysis using Google Gemini AI
+## Core Features
+
+- 🤖 Intelligent analysis powered by [Google Gemini AI](https://github.com/google/generative-ai-python)
+- 🔔 Real-time multi-device notifications via [Bark](https://github.com/Finb/Bark)
+- 📰 Latest financial news from [Finnhub](https://finnhub.io/) (supports Reuters, Bloomberg, and other authoritative sources)
 - 📊 Market impact assessment and investment recommendations
-- 🔔 Real-time notifications via Bark push service
 - ⚙️ Multi-device push support
 - 🔄 Automatic deduplication to prevent duplicate notifications
 - 🛡️ Secure environment variable configuration
@@ -28,8 +30,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ### 2. Clone the Project
 
 ```bash
-git clone <your-repository-url>
-cd notifier
+git clone https://github.com/T1mn/MarketPulse.git
+cd MarketPulse
 ```
 
 ### 3. Create Virtual Environment and Install Dependencies
@@ -133,10 +135,26 @@ Each notification includes:
 ## Dependencies
 
 Main dependencies include:
+- `google-generativeai`: [Google Gemini AI](https://github.com/google/generative-ai-python) interface
 - `python-dotenv`: Environment variable management
 - `schedule`: Task scheduling
-- `google-generativeai`: Google Gemini AI interface
 - `requests`: HTTP requests
+
+## Contributing
+
+We welcome all forms of contributions, including but not limited to:
+- Submitting issues and suggestions
+- Improving documentation
+- Submitting code improvements
+- Sharing usage experiences
+
+## Acknowledgments
+
+- [Google Gemini AI](https://github.com/google/generative-ai-python) - For providing powerful AI analysis capabilities
+- [Bark](https://github.com/Finb/Bark) - For providing convenient push notification service
+- [Finnhub](https://finnhub.io/) - For providing high-quality financial news data API
+
+[![Star History Chart](https://api.star-history.com/svg?repos=T1mn/MarketPulse&type=Date)](https://www.star-history.com/#T1mn/MarketPulse&Date)
 
 ## License
 

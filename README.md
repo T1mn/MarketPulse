@@ -1,13 +1,15 @@
-# 金融资讯 AI 分析推送服务
+# MarketPulse - 金融资讯 AI 分析推送服务
 
-这是一个基于 Python 的金融资讯分析推送服务，它能够自动获取最新的金融新闻，使用 Google Gemini AI 进行分析，并通过 Bark 推送服务将分析结果发送到您的设备。
+MarketPulse 是一个轻量级的金融资讯分析推送服务，它基于 Google Gemini AI 和 Bark 推送服务构建，能够自动获取最新的金融新闻，进行智能分析，并将分析结果推送到您的设备。
 
-## 功能特点
+> 本项目完全开源，欢迎社区贡献和改进。如果您觉得这个项目对您有帮助，欢迎给个 star ⭐️
 
-- 📰 自动获取最新金融新闻（支持 Reuters、Bloomberg 等权威来源）
-- 🤖 使用 Google Gemini AI 进行智能分析
+## 核心特性
+
+- 🤖 基于 [Google Gemini AI](https://github.com/google/generative-ai-python) 的智能分析
+- 🔔 通过 [Bark](https://github.com/Finb/Bark) 实现多设备实时推送
+- 📰 通过 [Finnhub](https://finnhub.io/) 获取最新金融新闻（支持 Reuters、Bloomberg 等权威来源）
 - 📊 提供市场影响评估和投资建议
-- 🔔 通过 Bark 推送服务实时通知
 - ⚙️ 支持多设备推送
 - 🔄 自动去重，避免重复推送
 - 🛡️ 安全的环境变量配置
@@ -28,8 +30,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ### 2. 克隆项目
 
 ```bash
-git clone <your-repository-url>
-cd notifier
+git clone https://github.com/T1mn/MarketPulse.git
+cd MarketPulse
 ```
 
 ### 3. 创建虚拟环境并安装依赖
@@ -133,10 +135,26 @@ NEWS_FETCH_INTERVAL = 30  # 分钟
 ## 依赖说明
 
 主要依赖包括：
+- `google-generativeai`: [Google Gemini AI](https://github.com/google/generative-ai-python) 接口
 - `python-dotenv`: 环境变量管理
 - `schedule`: 定时任务调度
-- `google-generativeai`: Google Gemini AI 接口
 - `requests`: HTTP 请求
+
+## 贡献指南
+
+我们欢迎任何形式的贡献，包括但不限于：
+- 提交问题和建议
+- 改进文档
+- 提交代码改进
+- 分享使用经验
+
+## 致谢
+
+- [Google Gemini AI](https://github.com/google/generative-ai-python) - 提供强大的 AI 分析能力
+- [Bark](https://github.com/Finb/Bark) - 提供便捷的推送服务
+- [Finnhub](https://finnhub.io/) - 提供优质的金融新闻数据 API
+
+[![Star History Chart](https://api.star-history.com/svg?repos=T1mn/MarketPulse&type=Date)](https://www.star-history.com/#T1mn/MarketPulse&Date)
 
 ## 许可证
 
