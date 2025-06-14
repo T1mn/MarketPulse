@@ -2,8 +2,7 @@ import time
 
 import schedule
 
-from MarketPulse import (ai_analyzer, config, news_fetcher, notifier,
-                         state_manager)
+from MarketPulse import ai_analyzer, config, news_fetcher, notifier, state_manager
 
 
 def run_job():
