@@ -51,6 +51,8 @@ source .venv/bin/activate  # Linux/macOS
 .venv\Scripts\activate  # Windows
 
 uv pip install -r requirements.txt
+
+uv pip install -e .
 ```
 
 ### 4. Configure Environment Variables
@@ -77,7 +79,7 @@ BARK_KEY_1=your_first_bark_key
 ### 5. Run the Service
 
 ```bash
-python main.py
+python ./MarketPulse/main.py
 ```
 
 ## Configuration Guide

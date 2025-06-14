@@ -11,3 +11,15 @@ __pycache__/
 
 # 本地数据文件
 processed_news.json 
+
+# 虚拟环境
+.venv/
+
+# 开发者文件
+.idea/
+.vscode/
+dependency_links.txt
+PKG-INFO
+requires.txt
+SOURCES.txt
+top_level.txt

@@ -51,6 +51,8 @@ source .venv/bin/activate  # Linux/macOS
 .venv\Scripts\activate  # Windows
 
 uv pip install -r requirements.txt
+
+uv pip install -e .
 ```
 
 ### 4. 配置环境变量
@@ -77,7 +79,7 @@ BARK_KEY_1=your_first_bark_key
 ### 5. 运行服务
 
 ```bash
-python main.py
+python ./MarketPulse/main.py
 ```
 
 ## 配置说明
