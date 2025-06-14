@@ -7,7 +7,7 @@ from MarketPulse import ai_analyzer, config, news_fetcher, notifier, state_manag
 
 def run_job():
     """
-    定义一个完整的工作流：获取新闻 -> 分析 -> 推送。
+    定义一个完整的工作流：获取新闻 -> 批量分析 -> 过滤 -> 汇总推送。
     """
     print("\n" + "=" * 50)
     print(f"任务开始: {time.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -20,55 +20,64 @@ def run_job():
     # 2. 获取最新新闻
     articles = news_fetcher.fetch_latest_news()
     if not articles:
-        print("任务结束: 没有新新闻可处理。")
+        print("任务结束: 没有从API获取到新闻。")
         return
 
-    # 3. 倒序处理新闻，确保按时间顺序推送
-    new_articles_count = 0
-    for article in reversed(articles):
-        article_id = article.get("id")
+    # 3. 过滤掉已经处理过的新闻
+    new_articles = [
+        article for article in articles if article.get("id") not in processed_ids
+    ]
 
-        # 检查新闻是否已经被处理过
-        if not article_id or article_id in processed_ids:
+    if not new_articles:
+        print("所有获取到的新闻都已被处理过，任务结束。")
+        return
+
+    new_articles = new_articles[:5]
+
+    print(f"发现 {len(new_articles)} 条新文章，正在进行AI批量分析...")
+
+    # 4. 对所有新新闻进行批量AI分析
+    analysis_results = ai_analyzer.analyze_news_in_batch(new_articles)
+
+    if not analysis_results:
+        print("AI分析未返回任何结果，任务结束。")
+        # 仍然需要保存ID，避免重复分析失败的文章
+        for article in new_articles:
+            if article.get("id"):
+                processed_ids.add(article.get("id"))
+        state_manager.save_processed_ids(processed_ids)
+        return
+
+    # 5. 过滤掉无效/“未知”的分析建议
+    valid_analyses = []
+    for analysis in analysis_results:
+        insight = analysis.get("actionable_insight", {})
+        print(insight)
+        asset_name = insight.get("asset", {}).get("name")
+        action = insight.get("action")
+
+        # 如果关键信息都是“未知”，则认为是无效建议，过滤掉
+        if asset_name == "未知" and action == "未知":
+            print(f"过滤无效建议 (ID: {analysis.get('id')})")
             continue
 
-        new_articles_count += 1
-        print(f"\n--- 处理新文章 ID: {article_id} ---")
-        print(f"标题: {article.get('title')}")
+        valid_analyses.append(analysis)
 
-        # 4. 对新新闻进行AI分析
-        analysis_result = ai_analyzer.analyze_news_article(article)
+    # 6. 如果有有效建议，则汇总发送通知
+    if valid_analyses:
+        print(f"分析完成，发现 {len(valid_analyses)} 条有效建议，准备发送通知。")
+        # 创建文章ID到文章内容的映射，方便查找URL
+        articles_map = {article["id"]: article for article in new_articles}
+        notifier.send_summary_notification(valid_analyses, articles_map)
+    else:
+        print("AI分析完成，但没有发现可操作的有效建议。")
 
-        if analysis_result:
-            # 获取相关股票信息
-            related_symbols = []
-            if article.get("related"):
-                related_symbols = [
-                    symbol for symbol in article.get("related", "").split(",") if symbol
-                ]
-
-            # 5. 发送通知
-            notifier.send_bark_notification(
-                analysis_result,
-                article.get("url"),
-                article.get("source"),
-                related_symbols,
-                article.get("datetime"),
-            )
-
-            # 6. 将处理过的ID加入集合
-            processed_ids.add(article_id)
-
-            # 增加延迟，避免对API的请求过于频繁
-            time.sleep(5)
-        else:
-            print(f"文章 {article_id} 分析失败，跳过。")
-
-    if new_articles_count == 0:
-        print("所有获取到的新闻都已被处理过。")
-
-    # 7. 保存更新后的已处理ID列表
+    # 7. 将所有新处理的文章ID加入集合并保存
+    for article in new_articles:
+        if article.get("id"):
+            processed_ids.add(article.get("id"))
     state_manager.save_processed_ids(processed_ids)
+
     print("\n" + "=" * 50)
     print(f"任务结束: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 50)

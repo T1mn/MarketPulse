@@ -33,7 +33,7 @@ jobs:
         uv pip install -r requirements.txt
         uv pip install -e .
         
-    - name: Check code formatting
+    - name: black code formatting
       run: |
         source .venv/bin/activate
         black . --check --exclude '\.venv|\.git'

@@ -11,37 +11,35 @@ FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # ===================== 新闻获取模块配置 =====================
-# Finnhub新闻类别，'general' 代表一般财经新闻
-NEWS_CATEGORY = "general"
+# 是否开启各类新闻的获取
+FETCH_GENERAL_NEWS = True  # 获取宏观新闻
+FETCH_FOREX_NEWS = True  # 获取外汇新闻
+FETCH_CRYPTO_NEWS = True  # 获取加密货币新闻
+FETCH_COMPANY_NEWS = True  # 获取美股公司新闻
+
+# 获取公司新闻的时间范围（天）
+COMPANY_NEWS_DAYS_AGO = 2
+
+# 每个类别/代码获取的新闻数量限制
+MAX_NEWS_PER_CATEGORY = 5
+MAX_NEWS_PER_SYMBOL = 5
 
 # 新闻获取间隔（分钟）
 NEWS_FETCH_INTERVAL = 30
 
-# 每次获取的最新新闻数量限制
-MAX_NEWS_COUNT = 10
-
-# 信任的新闻源
-TRUSTED_SOURCES = [
-    "Reuters",
-    "Bloomberg",
-    "The Wall Street Journal",
-    "Associated Press",
-    "CNBC",
-    "Dow Jones Newswires",
-    "MarketWatch",
-]
-
-# 美国市场股票代码
-US_MARKET_SYMBOLS = [
-    "SPY",  # 标普500 ETF，代表整个市场
-    "DIA",  # 道琼斯指数 ETF
-    "QQQ",  # 纳斯达克100 ETF
-    "AAPL",  # 苹果
-    "MSFT",  # 微软
-    "GOOGL",  # 谷歌
-    "AMZN",  # 亚马逊
-    "TSLA",  # 特斯拉
-]
+# 市场分类配置
+MARKET_SYMBOLS = {
+    "etf": [  # 大盘指数ETF
+        "SPY",  # 标普500 ETF，代表整个市场
+        "DIA",  # 道琼斯指数 ETF
+        "QQQ",  # 纳斯达克100 ETF
+        "AAPL",  # 苹果
+        "MSFT",  # 微软
+        "GOOGL",  # 谷歌
+        "AMZN",  # 亚马逊
+        "TSLA",  # 特斯拉
+    ],
+}
 
 # ===================== 推送模块配置 =====================
 # Bark 设备的 Keys（从环境变量获取）
