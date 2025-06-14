@@ -1,5 +1,13 @@
 # MarketPulse - 金融资讯 AI 分析推送服务
 
+<div align="center">
+
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+
+</div>
+
 MarketPulse 是一个轻量级的金融资讯分析推送服务，它基于 Google Gemini AI 和 Bark 推送服务构建，能够自动获取最新的金融新闻，进行智能分析，并将分析结果推送到您的设备。
 
 > 本项目完全开源，欢迎社区贡献和改进。如果您觉得这个项目对您有帮助，欢迎给个 star ⭐️
@@ -154,8 +162,9 @@ NEWS_FETCH_INTERVAL = 30  # 分钟
 - [Bark](https://github.com/Finb/Bark) - 提供便捷的推送服务
 - [Finnhub](https://finnhub.io/) - 提供优质的金融新闻数据 API
 
-[![Star History Chart](https://api.star-history.com/svg?repos=T1mn/MarketPulse&type=Date)](https://www.star-history.com/#T1mn/MarketPulse&Date)
 
 ## 许可证
 
 MIT License 
+
+[![Star History Chart](https://api.star-history.com/svg?repos=T1mn/MarketPulse&type=Date)](https://www.star-history.com/#T1mn/MarketPulse&Date)

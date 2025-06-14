@@ -1,5 +1,13 @@
 # MarketPulse - Financial News AI Analysis Notification Service
 
+<div align="center">
+
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+
+</div>
+
 MarketPulse is a lightweight financial news analysis and notification service built on top of Google Gemini AI and Bark push service. It automatically fetches the latest financial news, performs intelligent analysis, and delivers insights to your devices.
 
 > This project is completely open source. Community contributions and improvements are welcome. If you find this project helpful, please consider giving it a star ⭐️
@@ -154,8 +162,10 @@ We welcome all forms of contributions, including but not limited to:
 - [Bark](https://github.com/Finb/Bark) - For providing convenient push notification service
 - [Finnhub](https://finnhub.io/) - For providing high-quality financial news data API
 
-[![Star History Chart](https://api.star-history.com/svg?repos=T1mn/MarketPulse&type=Date)](https://www.star-history.com/#T1mn/MarketPulse&Date)
+
 
 ## License
 
 MIT License 
+
+[![Star History Chart](https://api.star-history.com/svg?repos=T1mn/MarketPulse&type=Date)](https://www.star-history.com/#T1mn/MarketPulse&Date)
