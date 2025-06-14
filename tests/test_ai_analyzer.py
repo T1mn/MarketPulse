@@ -1,8 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-
-import ai_analyzer
+from MarketPulse import ai_analyzer
 
 
 def test_analyze_news_article_success(
@@ -12,7 +11,7 @@ def test_analyze_news_article_success(
     if not use_mock:
         pytest.skip("跳过实际API调用测试")
 
-    with patch("ai_analyzer.genai.Client", return_value=mock_genai_client):
+    with patch("MarketPulse.ai_analyzer.genai.Client", return_value=mock_genai_client):
         result = ai_analyzer.analyze_news_article(mock_article)
         assert result is not None
         assert isinstance(result, dict)
@@ -24,7 +23,9 @@ def test_analyze_news_article_failure(mock_article, use_mock):
     if not use_mock:
         pytest.skip("跳过实际API调用测试")
 
-    with patch("ai_analyzer.genai.Client", side_effect=Exception("API Error")):
+    with patch(
+        "MarketPulse.ai_analyzer.genai.Client", side_effect=Exception("API Error")
+    ):
         result = ai_analyzer.analyze_news_article(mock_article)
         assert result is None
 

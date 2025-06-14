@@ -3,8 +3,7 @@ import os
 from unittest.mock import mock_open, patch
 
 import pytest
-
-import state_manager
+from MarketPulse import state_manager
 
 
 def test_load_processed_ids_empty_file():

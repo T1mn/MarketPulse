@@ -1,8 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-import notifier
+from MarketPulse import notifier
 
 
 @pytest.fixture
@@ -21,7 +20,7 @@ def test_send_bark_notification_success(
     if not use_mock:
         pytest.skip("跳过实际API调用测试")
 
-    with patch("notifier.requests.post", return_value=mock_bark_response):
+    with patch("MarketPulse.notifier.requests.post", return_value=mock_bark_response):
         result = notifier.send_bark_notification(
             mock_analysis_result,
             "https://example.com/test",
@@ -41,7 +40,7 @@ def test_send_bark_notification_failure(mock_analysis_result, use_mock):
     mock_response.status_code = 500
     mock_response.json.return_value = {"code": 500, "message": "error"}
 
-    with patch("notifier.requests.post", return_value=mock_response):
+    with patch("MarketPulse.notifier.requests.post", return_value=mock_response):
         result = notifier.send_bark_notification(
             mock_analysis_result,
             "https://example.com/test",
@@ -57,7 +56,9 @@ def test_send_bark_notification_network_error(mock_analysis_result, use_mock):
     if not use_mock:
         pytest.skip("跳过实际API调用测试")
 
-    with patch("notifier.requests.post", side_effect=Exception("Network Error")):
+    with patch(
+        "MarketPulse.notifier.requests.post", side_effect=Exception("Network Error")
+    ):
         result = notifier.send_bark_notification(
             mock_analysis_result,
             "https://example.com/test",

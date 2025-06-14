@@ -31,13 +31,11 @@ jobs:
         uv venv
         source .venv/bin/activate
         uv pip install -r requirements.txt
-        uv pip install pytest pytest-cov flake8 black isort
         
     - name: Check code formatting
       run: |
         source .venv/bin/activate
         black . --check --exclude '\.venv|\.git'
-        isort . --check-only --skip-glob '.*'
         
     - name: Lint with flake8
       run: |

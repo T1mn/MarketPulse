@@ -1,8 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-import news_fetcher
+from MarketPulse import news_fetcher
 
 
 @pytest.fixture
@@ -36,7 +35,8 @@ def test_fetch_latest_news_success(mock_finnhub_response, use_mock):
         pytest.skip("跳过实际API调用测试")
 
     with patch(
-        "news_fetcher.finnhub_client.general_news", return_value=mock_finnhub_response
+        "MarketPulse.news_fetcher.finnhub_client.general_news",
+        return_value=mock_finnhub_response,
     ):
         articles = news_fetcher.fetch_latest_news()
         assert isinstance(articles, list)
@@ -50,7 +50,7 @@ def test_fetch_latest_news_empty(use_mock):
     if not use_mock:
         pytest.skip("跳过实际API调用测试")
 
-    with patch("news_fetcher.finnhub_client.general_news", return_value=[]):
+    with patch("MarketPulse.news_fetcher.finnhub_client.general_news", return_value=[]):
         articles = news_fetcher.fetch_latest_news()
         assert isinstance(articles, list)
         assert len(articles) == 0
@@ -62,7 +62,8 @@ def test_fetch_latest_news_api_error(use_mock):
         pytest.skip("跳过实际API调用测试")
 
     with patch(
-        "news_fetcher.finnhub_client.general_news", side_effect=Exception("API Error")
+        "MarketPulse.news_fetcher.finnhub_client.general_news",
+        side_effect=Exception("API Error"),
     ):
         articles = news_fetcher.fetch_latest_news()
         assert isinstance(articles, list)
