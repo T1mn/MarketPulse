@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-import notifier
+from MarketPulse import notifier
 
 
 @pytest.fixture

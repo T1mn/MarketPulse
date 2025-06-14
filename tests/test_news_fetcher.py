@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-import news_fetcher
+from MarketPulse import news_fetcher
 
 
 @pytest.fixture
