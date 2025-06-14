@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-from MarketPulse import ai_analyzer
+import ai_analyzer
 
 
 def test_analyze_news_article_success(

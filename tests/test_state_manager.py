@@ -1,9 +1,8 @@
 import json
-import os
 from unittest.mock import mock_open, patch
 
 import pytest
-from MarketPulse import state_manager
+import state_manager
 
 
 def test_load_processed_ids_empty_file():
