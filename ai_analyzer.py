@@ -3,11 +3,12 @@ import config
 from google import genai
 import json
 
+
 def analyze_news_article(article):
     """使用Gemini分析新闻并返回结构化JSON"""
     try:
         client = genai.Client(api_key=config.GEMINI_API_KEY)
-        model = 'gemini-2.5-flash-preview-05-20'
+        model = "gemini-2.5-flash-preview-05-20"
 
         prompt = f"""
         你是一位专业的金融分析师。请基于以下新闻内容，提供专业的市场分析和投资建议。请严格按照指定的JSON格式输出你的分析结果，不要添加任何额外的解释或说明文字。

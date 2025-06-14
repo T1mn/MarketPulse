@@ -4,6 +4,7 @@ import config
 from datetime import datetime, timedelta
 import time
 
+
 class NewsFetcher:
     def __init__(self):
         self.api_key = config.FINNHUB_API_KEY
@@ -37,7 +38,7 @@ class NewsFetcher:
         try:
             url = f"https://finnhub.io/api/v1/news?category={config.NEWS_CATEGORY}&token={self.api_key}"
             response = requests.get(url)
-            
+
             if response.status_code != 200:
                 print(f"获取新闻失败: HTTP {response.status_code}")
                 return []
@@ -50,41 +51,47 @@ class NewsFetcher:
             filtered_news = []
             for news in news_list:
                 # 检查来源是否可信
-                if not self.is_trusted_source(news.get('source', '')):
+                if not self.is_trusted_source(news.get("source", "")):
                     continue
 
                 # 检查是否与关注的市场相关
-                if not self.is_market_related(news.get('headline', ''), news.get('summary', '')):
+                if not self.is_market_related(
+                    news.get("headline", ""), news.get("summary", "")
+                ):
                     continue
 
                 # 转换新闻格式
-                filtered_news.append({
-                    "id": news.get("id"),
-                    "title": news.get("headline"),
-                    "content": news.get("summary"),
-                    "url": news.get("url", ""),
-                    "source": news.get("source", ""),
-                    "category": news.get("category", ""),
-                    "datetime": news.get("datetime", ""),
-                    "related": news.get("related", "")
-                })
+                filtered_news.append(
+                    {
+                        "id": news.get("id"),
+                        "title": news.get("headline"),
+                        "content": news.get("summary"),
+                        "url": news.get("url", ""),
+                        "source": news.get("source", ""),
+                        "category": news.get("category", ""),
+                        "datetime": news.get("datetime", ""),
+                        "related": news.get("related", ""),
+                    }
+                )
 
             # 更新最后获取时间
             self.last_fetch_time = datetime.now()
-            
+
             # 按时间排序，最新的在前面
-            filtered_news.sort(key=lambda x: x.get('datetime', ''), reverse=True)
-            
+            filtered_news.sort(key=lambda x: x.get("datetime", ""), reverse=True)
+
             # 只返回最新的5条新闻
             return filtered_news[:5]
 
         except Exception as e:
             print(f"获取新闻时发生错误: {str(e)}, 错误代码: {response.status_code}")
-            
+
             return []
+
 
 # 创建全局实例
 news_fetcher = NewsFetcher()
+
 
 def fetch_latest_news():
     """对外提供的获取新闻接口"""
