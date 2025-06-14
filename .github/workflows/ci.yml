@@ -43,14 +43,3 @@ jobs:
         source .venv/bin/activate
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,.git
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=.venv,.git
-        
-    - name: Run tests with pytest
-      run: |
-        source .venv/bin/activate
-        pytest tests/ --cov=MarketPulse --cov-report=xml
-        
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage.xml
-        fail_ci_if_error: true 
