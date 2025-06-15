@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime, timedelta
 
 import requests
@@ -20,10 +21,10 @@ class NewsFetcher:
             response.raise_for_status()  # 对错误的HTTP状态码抛出异常
             return response.json()
         except requests.exceptions.RequestException as e:
-            print(f"获取新闻时发生网络错误: {e}, URL: {url}")
+            logging.error(f"获取新闻时发生网络错误: {e}, URL: {url}")
             return None
         except json.JSONDecodeError:
-            print(f"无法解析API响应的JSON内容: {url}")
+            logging.error(f"无法解析API响应的JSON内容: {url}")
             return None
 
     def _format_news_item(self, news_item):
@@ -48,7 +49,7 @@ class NewsFetcher:
 
     def _fetch_news_by_category(self, category):
         """第一步和第三步：根据类别获取新闻 (forex, crypto, general)"""
-        print(f"正在获取 '{category}' 类别的新闻...")
+        logging.info(f"正在获取 '{category}' 类别的新闻...")
         url = f"https://finnhub.io/api/v1/news?category={category}&token={self.api_key}"
         news_list = self._make_request(url)
         if not news_list:
@@ -57,7 +58,7 @@ class NewsFetcher:
 
     def _fetch_company_news(self):
         """第二步：获取所有配置的股票代码的公司新闻"""
-        print("正在获取美股公司相关新闻...")
+        logging.info("正在获取美股公司相关新闻...")
         all_company_news = []
         symbols_to_fetch = [
             symbol
@@ -71,7 +72,7 @@ class NewsFetcher:
         ).strftime("%Y-%m-%d")
 
         for symbol in symbols_to_fetch:
-            print(f"  - 获取 {symbol} 的新闻...")
+            logging.info(f"  - 获取 {symbol} 的新闻...")
             url = f"https://finnhub.io/api/v1/company-news?symbol={symbol}&from={from_date}&to={to_date}&token={self.api_key}"
             news_list = self._make_request(url)
             if news_list:
@@ -83,7 +84,7 @@ class NewsFetcher:
         主函数：执行分步获取、汇总、去重、过滤和排序
         """
         if not self.should_fetch_news():
-            print("距离上次获取新闻时间太短，跳过本次获取。")
+            logging.info("距离上次获取新闻时间太短，跳过本次获取。")
             return []
 
         # 分步获取原始新闻
@@ -98,11 +99,11 @@ class NewsFetcher:
             raw_news.extend(self._fetch_company_news())
 
         if not raw_news:
-            print("未能从任何来源获取到新闻。")
+            logging.warning("未能从任何来源获取到新闻。")
             return []
 
         # --- 汇总和处理 ---
-        print(f"共获取到 {len(raw_news)} 条原始新闻，开始去重和处理...")
+        logging.info(f"共获取到 {len(raw_news)} 条原始新闻，开始去重和格式化...")
         processed_news = {}  # 使用字典通过ID去重
         for news in raw_news:
             if not news or not news.get("id"):
@@ -116,7 +117,7 @@ class NewsFetcher:
         final_news_list.sort(key=lambda x: x.get("datetime", 0), reverse=True)
 
         self.last_fetch_time = datetime.now()
-        print(f"处理完成，返回 {len(final_news_list)} 条唯一且可信的新闻。")
+        logging.info(f"处理完成，返回 {len(final_news_list)} 条唯一且格式化的新闻。")
         return final_news_list
 
 

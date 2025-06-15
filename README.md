@@ -172,3 +172,52 @@ NEWS_FETCH_INTERVAL = 30  # 分钟
 MIT License 
 
 [![Star History Chart](https://api.star-history.com/svg?repos=T1mn/MarketPulse&type=Date)](https://www.star-history.com/#T1mn/MarketPulse&Date)
+
+## 服务管理
+
+### 守护进程运行
+
+MarketPulse 支持以守护进程方式运行，提供完整的进程管理功能：
+
+```bash
+# 启动服务
+python -m MarketPulse.daemon_manager start
+
+# 停止服务
+python -m MarketPulse.daemon_manager stop
+
+# 查看服务状态
+python -m MarketPulse.daemon_manager status
+```
+
+服务将完全在后台运行，不会占用终端。启动服务后，您可以安全地关闭终端窗口。
+
+### 日志系统
+
+服务使用分层日志系统，所有日志文件存放在 `logs` 目录下：
+
+- `logs/market_pulse.log`: 主程序运行日志
+- `logs/daemon.log`: 守护进程相关日志
+
+查看实时日志：
+```bash
+# 查看主程序日志
+tail -f logs/market_pulse.log
+
+# 查看守护进程日志
+tail -f logs/daemon.log
+```
+
+日志文件自动轮转：
+- 主日志：每个文件最大 10MB，保留 5 个备份文件
+- 守护进程日志：每个文件最大 5MB，保留 3 个备份文件
+
+### 进程管理
+
+服务在 `market_pulse.pid` 文件中维护进程 ID，用于进程管理。您不需要直接操作此文件，守护进程管理器会自动处理。
+
+主要特性：
+- 完全脱离终端运行
+- 自动进程管理
+- 优雅的启动和关闭
+- 信号处理（SIGTERM, SIGINT）

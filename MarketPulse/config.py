@@ -1,6 +1,10 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
+
+# 项目根目录
+BASE_DIR = Path(__file__).parent.parent
 
 # 加载.env文件
 load_dotenv()
@@ -55,3 +59,19 @@ BARK_GROUP = "MarketPulse-金融资讯AI分析推送"
 # ===================== 状态管理配置 =====================
 # 用于存储已处理新闻ID的文件路径
 PROCESSED_NEWS_FILE = "processed_news.json"
+
+# ===================== 日志配置 =====================
+# 日志目录
+LOG_DIR = BASE_DIR / "logs"
+# 确保日志目录存在
+LOG_DIR.mkdir(exist_ok=True)
+
+# 应用日志
+APP_LOG_FILE = LOG_DIR / "market_pulse.log"
+# 守护进程日志
+DAEMON_LOG_FILE = LOG_DIR / "daemon.log"
+# 日志级别 (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+LOG_LEVEL = "INFO"
+
+# PID文件路径
+PID_FILE = BASE_DIR / "market_pulse.pid"

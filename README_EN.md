@@ -166,7 +166,54 @@ We welcome all forms of contributions, including but not limited to:
 - [Bark](https://github.com/Finb/Bark) - For providing convenient push notification service
 - [Finnhub](https://finnhub.io/) - For providing high-quality financial news data API
 
+## Service Management
 
+### Running as a Daemon
+
+MarketPulse supports running as a daemon service with complete process management:
+
+```bash
+# Start the service
+python -m MarketPulse.daemon_manager start
+
+# Stop the service
+python -m MarketPulse.daemon_manager stop
+
+# Check service status
+python -m MarketPulse.daemon_manager status
+```
+
+The service will run completely in the background without occupying your terminal. You can safely close your terminal after starting the service.
+
+### Logging System
+
+The service uses a hierarchical logging system. All log files are stored in the `logs` directory:
+
+- `logs/market_pulse.log`: Main application logs
+- `logs/daemon.log`: Daemon process logs
+
+Monitor logs in real-time:
+```bash
+# View main application logs
+tail -f logs/market_pulse.log
+
+# View daemon process logs
+tail -f logs/daemon.log
+```
+
+Log files are automatically rotated:
+- Main log: Maximum 10MB per file, keeps 5 backup files
+- Daemon log: Maximum 5MB per file, keeps 3 backup files
+
+### Process Management
+
+The service maintains a PID file at `market_pulse.pid` for process management. You don't need to handle this file directly as it's managed by the daemon manager.
+
+Key features:
+- Complete detachment from terminal
+- Automatic process management
+- Graceful startup and shutdown
+- Signal handling (SIGTERM, SIGINT)
 
 ## License
 
