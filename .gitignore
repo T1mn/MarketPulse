@@ -10,7 +10,7 @@ __pycache__/
 *.log
 
 # 本地数据文件
-processed_news.json 
+app_state.json 
 
 # 虚拟环境
 .venv/
