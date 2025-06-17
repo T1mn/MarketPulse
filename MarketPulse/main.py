@@ -59,9 +59,13 @@ def run_job():
             continue
         insight = analysis.get("actionable_insight", {})
         asset_name = insight.get("asset", {}).get("name")
-        # 如果资产名称为“未知”，则认为是无效建议，直接过滤掉
+        # 如果资产名称为"未知"，则认为是无效建议，直接过滤掉
         if not asset_name or asset_name == "未知":
             logging.info(f"过滤无效建议 (ID: {analysis.get('id')}, 原因: 资产名称未知)")
+            continue
+        # 过滤掉"观望"的建议
+        if insight.get("action") == "观望":
+            logging.info(f"过滤无效建议 (ID: {analysis.get('id')}, 原因: 操作为观望)")
             continue
         valid_analyses.append(analysis)
 

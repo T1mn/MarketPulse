@@ -94,17 +94,13 @@ def send_summary_notification(valid_analyses, articles_map):
                 confidence = insight.get("confidence", "未知")
                 body_parts.append(f"   原因: {reasoning}")
                 body_parts.append(
-                    f"   信心: {confidence} (来源可信度: {source_confidence})"
+                    f"   判断可信度: {confidence} | 来源可信度: {source_confidence}"
                 )
                 body_parts.append(f"   来源: {source_medium}")
                 body_parts.append(f"   链接: {source_url}")
                 body_parts.append("")
 
             body = "\n".join(body_parts)
-
-            # 使用批次中第一条分析对应的新闻链接作为跳转链接
-            first_article_id = batch_analyses[0].get("id")
-            article_url = articles_map.get(first_article_id, {}).get("url", "")
 
             # URL编码，并确保'/'被正确编码，防止404错误
             title_encoded = urllib.parse.quote(title, safe="")
