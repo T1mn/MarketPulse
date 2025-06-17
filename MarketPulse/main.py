@@ -38,8 +38,11 @@ def run_job():
     # 4. 对所有新新闻进行批量AI分析
     analysis_results = ai_analyzer.analyze_news_in_batch(new_articles)
 
-    if not analysis_results:
-        logging.warning("AI分析未返回任何结果，任务结束。")
+    # 类型校验和异常处理，防止AI返回格式不符导致服务崩溃
+    if not isinstance(analysis_results, list):
+        logging.error(
+            f"AI分析返回结果不是列表: {type(analysis_results)}，内容: {analysis_results}"
+        )
         # 仍然需要保存ID，避免重复分析失败的文章
         for article in new_articles:
             if article.get("id"):
@@ -47,17 +50,19 @@ def run_job():
         state_manager.save_processed_ids(processed_ids)
         return
 
-    # 5. 过滤掉无效/“未知”的分析建议
     valid_analyses = []
-    for analysis in analysis_results:
+    for idx, analysis in enumerate(analysis_results):
+        if not isinstance(analysis, dict):
+            logging.error(
+                f"第{idx}个AI分析结果不是字典: {analysis} (类型: {type(analysis)})"
+            )
+            continue
         insight = analysis.get("actionable_insight", {})
         asset_name = insight.get("asset", {}).get("name")
-
         # 如果资产名称为“未知”，则认为是无效建议，直接过滤掉
         if not asset_name or asset_name == "未知":
             logging.info(f"过滤无效建议 (ID: {analysis.get('id')}, 原因: 资产名称未知)")
             continue
-
         valid_analyses.append(analysis)
 
     # 6. 如果有有效建议，则汇总发送通知
