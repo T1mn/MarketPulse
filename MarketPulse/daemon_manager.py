@@ -2,6 +2,7 @@ import logging
 import os
 import signal
 import sys
+import time
 from contextlib import contextmanager
 
 import daemon
@@ -77,17 +78,35 @@ def stop():
     pid = get_pid()
     if not pid:
         print("服务未在运行")
-        return
+        return False
 
     try:
         os.kill(pid, signal.SIGTERM)
-        print(f"已发送停止信号到进程 {pid}")
+        print(f"已发送停止信号到进程 {pid}，等待进程退出...")
+        # 等待最多10秒，直到进程停止
+        for _ in range(10):
+            if not is_running():
+                print("服务已成功停止。")
+                return True
+            time.sleep(1)
+        
+        print("停止服务超时。请手动检查进程。")
+        return False
     except ProcessLookupError:
-        print("服务未在运行")
+        print("服务未在运行 (进程不存在)。")
         if os.path.exists(config.PID_FILE):
             os.remove(config.PID_FILE)
+        return True # 进程已经不在了，也算成功
     except Exception as e:
         print(f"停止服务时发生错误: {e}")
+        return False
+
+
+def restart():
+    """重启服务"""
+    print("正在重启服务...")
+    if stop():
+        start()
 
 
 def status():
@@ -101,8 +120,8 @@ def status():
 
 def main():
     """命令行入口"""
-    if len(sys.argv) != 2 or sys.argv[1] not in ["start", "stop", "status"]:
-        print("用法: python -m MarketPulse.daemon_manager [start|stop|status]")
+    if len(sys.argv) != 2 or sys.argv[1] not in ["start", "stop", "status", "restart"]:
+        print("用法: python -m MarketPulse.daemon_manager [start|stop|status|restart]")
         sys.exit(1)
 
     command = sys.argv[1]
@@ -111,6 +130,8 @@ def main():
         start()
     elif command == "stop":
         stop()
+    elif command == "restart":
+        restart()
     elif command == "status":
         status()
 
