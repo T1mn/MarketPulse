@@ -89,14 +89,14 @@ def stop():
                 print("服务已成功停止。")
                 return True
             time.sleep(1)
-        
+
         print("停止服务超时。请手动检查进程。")
         return False
     except ProcessLookupError:
         print("服务未在运行 (进程不存在)。")
         if os.path.exists(config.PID_FILE):
             os.remove(config.PID_FILE)
-        return True # 进程已经不在了，也算成功
+        return True  # 进程已经不在了，也算成功
     except Exception as e:
         print(f"停止服务时发生错误: {e}")
         return False
