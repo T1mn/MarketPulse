@@ -1,11 +1,12 @@
+import logging
 import time
 import urllib.parse
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 import requests
 
-from MarketPulse import config
+from MarketPulse import config, state_manager
 
 
 def format_datetime(timestamp):
@@ -26,10 +27,10 @@ def format_datetime(timestamp):
 
 def send_summary_notification(valid_analyses, articles_map):
     """
-    将所有有效的分析结果汇总成多条Bark通知发送，并处理URL过长的问题。
+    将所有有效的分析结果汇总成多条通知发送，并处理URL过长、API限制等问题。
     """
     if not valid_analyses:
-        print("没有有效的分析结果可以发送。")
+        logging.info("没有有效的分析结果可以发送。")
         return
 
     # 定义一个保守的、适用于URL的单个消息体最大长度
@@ -102,31 +103,98 @@ def send_summary_notification(valid_analyses, articles_map):
 
             body = "\n".join(body_parts)
 
-            # URL编码，并确保'/'被正确编码，防止404错误
-            title_encoded = urllib.parse.quote(title, safe="")
-            body_encoded = urllib.parse.quote(body, safe="")
+            # --- Bark 推送 ---
+            if config.BARK_KEYS:
+                # URL编码，并确保'/'被正确编码，防止404错误
+                title_encoded = urllib.parse.quote(title, safe="")
+                body_encoded = urllib.parse.quote(body, safe="")
+                base_params = f"group={config.BARK_GROUP}"
+                success_count = 0
+                for bark_key in config.BARK_KEYS:
+                    try:
+                        bark_url = f"https://api.day.app/{bark_key}/{title_encoded}/{body_encoded}?{base_params}"
+                        response = requests.get(bark_url)
+                        response.raise_for_status()
+                        success_count += 1
+                    except requests.RequestException as e:
+                        logging.warning(f"向设备 {bark_key[:5]}... 发送Bark通知失败: {e}")
 
-            base_params = f"group={config.BARK_GROUP}"
-
-            # 向所有配置的设备发送通知
-            success_count = 0
-            for bark_key in config.BARK_KEYS:
-                try:
-                    bark_url = f"https://api.day.app/{bark_key}/{title_encoded}/{body_encoded}?{base_params}"
-                    response = requests.get(bark_url)
-                    response.raise_for_status()
-                    success_count += 1
-                except requests.RequestException as e:
-                    print(f"向设备 {bark_key[:5]}... 发送通知失败: {e}")
-
-            if success_count > 0:
-                print(f"Bark通知 (批次 {i}/{total_batches}) 发送成功！")
-            else:
-                print(f"Bark通知 (批次 {i}/{total_batches}) 所有设备发送失败！")
+                if success_count > 0:
+                    logging.info(f"Bark通知 (批次 {i}/{total_batches}) 发送成功！")
 
             # 如果有多个批次，在每次发送后稍作延迟，以避免潜在的速率限制
             if total_batches > 1:
                 time.sleep(1)
 
         except Exception as e:
-            print(f"构建或发送通知批次 {i}/{total_batches} 时发生错误: {e}")
+            logging.error(f"构建或发送Bark通知批次 {i}/{total_batches} 时发生错误: {e}")
+
+    # --- PushPlus 推送 (一次性全量推送) ---
+    if config.PUSHPLUS_TOKEN:
+        # 检查是否处于限制状态
+        app_state = state_manager.load_state()
+        restricted_until = app_state.get("pushplus_restricted_until", 0)
+
+        if time.time() < restricted_until:
+            restricted_time_str = format_datetime(restricted_until)
+            logging.warning(f"PushPlus因发送频率过高被限制，将在 {restricted_time_str} 后恢复。")
+        else:
+            try:
+                # 重新构建完整的正文
+                title = f"📈 MarketPulse - {len(valid_analyses)}条市场洞察"
+                full_body_parts = []
+                for analysis in valid_analyses:
+                    summary = analysis.get("summary", "无摘要")
+                    insight = analysis.get("actionable_insight", {})
+                    asset = insight.get("asset", {})
+                    source_confidence = analysis.get("source_confidence", "未知")
+
+                    article_id = analysis.get("id")
+                    article_info = articles_map.get(article_id, {})
+                    source_medium = article_info.get("source", "未知来源")
+                    source_url = article_info.get("url", "无链接")
+
+                    asset_name = asset.get("name", "未知资产")
+                    asset_ticker = asset.get("ticker", "")
+                    action = insight.get("action", "无建议")
+
+                    suggestion_title = f"▶︎ {action} {asset_name}"
+                    if asset_ticker and asset_ticker != "未知":
+                        suggestion_title += f" ({asset_ticker})"
+                    full_body_parts.append(suggestion_title)
+
+                    full_body_parts.append(f"   摘要: {summary}")
+                    reasoning = insight.get("reasoning", "无")
+                    confidence = insight.get("confidence", "未知")
+                    full_body_parts.append(f"   原因: {reasoning}")
+                    full_body_parts.append(
+                        f"   判断可信度: {confidence} | 来源可信度: {source_confidence}"
+                    )
+                    full_body_parts.append(f"   来源: {source_medium}")
+                    full_body_parts.append(f"   链接: {source_url}")
+                    full_body_parts.append("")
+                
+                body_html = "\n".join(full_body_parts).replace("\n", "<br/>")
+
+                params = {
+                    "token": config.PUSHPLUS_TOKEN,
+                    "title": title,
+                    "content": body_html,
+                    "template": "html",
+                    "topic": config.PUSHPLUS_TOPIC
+                }
+                response = requests.get("https://www.pushplus.plus/send", params=params)
+                response.raise_for_status()
+
+                result = response.json()
+                if result.get("code") == 900:
+                    logging.error("PushPlus通知失败: 用户账号因请求次数过多受限。将在6小时后重试。")
+                    app_state["pushplus_restricted_until"] = (datetime.now() + timedelta(hours=6)).timestamp()
+                    state_manager.save_state(app_state)
+                elif result.get("code") != 200:
+                    logging.error(f"PushPlus通知发送失败: {result.get('msg')}")
+
+            except requests.RequestException as e:
+                logging.error(f"发送PushPlus通知失败: {e}")
+            except Exception as e:
+                logging.error(f"处理PushPlus响应时出错: {e}")

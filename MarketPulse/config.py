@@ -56,9 +56,15 @@ for i in range(1, 4):  # 支持最多3个设备
 # Bark 推送分组
 BARK_GROUP = "MarketPulse-金融资讯AI分析推送"
 
+# PushPlus 推送配置
+PUSHPLUS_TOKEN = os.getenv("PUSHPLUS_TOKEN")
+# PushPlus 推送群组代码 (可选, 留空则推送到个人)
+PUSHPLUS_TOPIC = os.getenv("PUSHPLUS_TOPIC")
+
 # ===================== 状态管理配置 =====================
-# 用于存储已处理新闻ID的文件路径
-PROCESSED_NEWS_FILE = "processed_news.json"
+
+# 用于存储应用状态的文件路径, 例如已处理的新闻ID和推送服务状态
+APP_STATE_FILE = "app_state.json"
 
 # ===================== 日志配置 =====================
 # 日志目录
