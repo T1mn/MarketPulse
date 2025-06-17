@@ -176,14 +176,17 @@ def send_summary_notification(valid_analyses, articles_map):
                 
                 body_html = "\n".join(full_body_parts).replace("\n", "<br/>")
 
-                params = {
+                pushplus_url = "http://www.pushplus.plus/send"
+                payload = {
                     "token": config.PUSHPLUS_TOKEN,
                     "title": title,
                     "content": body_html,
                     "template": "html",
-                    "topic": config.PUSHPLUS_TOPIC
                 }
-                response = requests.get("https://www.pushplus.plus/send", params=params)
+                if config.PUSHPLUS_TOPIC:
+                    payload["topic"] = config.PUSHPLUS_TOPIC
+
+                response = requests.post(pushplus_url, json=payload)
                 response.raise_for_status()
 
                 result = response.json()
