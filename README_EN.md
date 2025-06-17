@@ -10,19 +10,36 @@
 
 </div>
 
-MarketPulse is a lightweight financial news analysis and notification service built on top of Google Gemini AI and Bark push service. It automatically fetches the latest financial news, performs intelligent analysis, and delivers insights to your devices.
+MarketPulse is a lightweight financial news analysis service built on Google Gemini AI. It automatically fetches the latest financial news, performs intelligent analysis, and delivers results with clear **investment advice**, **confidence scores**, and **source reliability** to your devices via **Bark** and **PushPlus**.
 
 > This project is completely open source. Community contributions and improvements are welcome. If you find this project helpful, please consider giving it a star ⭐️
 
 ## Core Features
 
 - 🤖 Intelligent analysis powered by [Google Gemini AI](https://github.com/google/generative-ai-python)
-- 🔔 Real-time multi-device notifications via [Bark](https://github.com/Finb/Bark)
-- 📰 Latest financial news from [Finnhub](https://finnhub.io/) (supports Reuters, Bloomberg, and other authoritative sources)
-- 📊 Market impact assessment and investment recommendations
-- ⚙️ Multi-device push support
-- 🔄 Automatic deduplication to prevent duplicate notifications
-- 🛡️ Secure environment variable configuration
+- 🔔 Real-time multi-device notifications via [Bark](https://github.com/Finb/Bark) and [PushPlus](https://www.pushplus.plus/)
+- 📰 Latest financial news from [Finnhub](https://finnhub.io/)
+- 📊 Provides market impact, investment advice, confidence scores, and source reliability (as percentages)
+- ⚙️ Multi-channel, multi-device push support with optimized message formatting
+- 🔄 Automatic deduplication to prevent repeat notifications
+- 🛡️ Secure configuration using environment variables
+- 🎛️ Daemon process management (start / stop / restart / status)
+- 🧠 State management to automatically handle API rate limits
+
+## Push Previews
+
+<details>
+<summary>Click to see Bark and PushPlus notification previews</summary>
+
+#### PushPlus Wechat Notification
+
+![PushPlus Preview](img/pushplus.png)
+
+#### Bark Notification
+
+Markdown does not support embedded videos, but you can [click here to see a screen recording of a Bark notification](img/bark.mp4).
+
+</details>
 
 ## System Requirements
 
@@ -31,7 +48,7 @@ MarketPulse is a lightweight financial news analysis and notification service bu
 
 ## Quick Start
 
-### 1. Install uv (Recommended)
+### 1. Install uv (Optional but Recommended)
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -65,23 +82,31 @@ Copy `.env.example` to `.env`:
 cp .env.example .env
 ```
 
-Edit `.env` file with your API keys:
+Edit the `.env` file with your API keys:
 
 ```env
 # API Keys
 FINNHUB_API_KEY=your_finnhub_api_key
 GEMINI_API_KEY=your_gemini_api_key
 
-# Bark Keys
+# Bark Keys (at least one is required)
 BARK_KEY_1=your_first_bark_key
 # BARK_KEY_2=your_second_bark_key
-# BARK_KEY_3=your_third_bark_key
+
+# PushPlus Token (optional)
+PUSHPLUS_TOKEN=your_pushplus_token
+# PushPlus Topic (optional, sends to your account if left blank)
+PUSHPLUS_TOPIC=your_topic_code
 ```
 
 ### 5. Run the Service
 
 ```bash
-python ./MarketPulse/main.py
+# Run directly in the foreground (for debugging)
+python -m MarketPulse.main
+
+# Or run as a daemon in the background (recommended)
+python -m MarketPulse.daemon_manager start
 ```
 
 ## Configuration Guide
@@ -139,10 +164,10 @@ Each notification includes:
 
 ## Important Notes
 
-1. Ensure all API keys are properly configured
-2. Using uv for environment management is recommended for better dependency resolution
-3. The service runs immediately upon startup, then follows the configured interval
-4. Processed news IDs are saved in `processed_news.json` to prevent duplicate notifications
+1.  **API Keys**: Ensure all required API keys are configured correctly.
+2.  **Environment Management**: Using `uv` is recommended for better dependency resolution.
+3.  **First Run**: The service runs a job immediately on startup, then follows the interval set in `config.py`.
+4.  **State File**: Processed news IDs and notifier status (e.g., rate limits) are saved in `app_state.json` to prevent duplicate notifications and respect API limits.
 
 ## Dependencies
 
@@ -178,6 +203,9 @@ python -m MarketPulse.daemon_manager start
 
 # Stop the service
 python -m MarketPulse.daemon_manager stop
+
+# Restart the service
+python -m MarketPulse.daemon_manager restart
 
 # Check service status
 python -m MarketPulse.daemon_manager status

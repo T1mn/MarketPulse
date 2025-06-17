@@ -10,19 +10,21 @@
 
 </div>
 
-MarketPulse 是一个轻量级的金融资讯分析推送服务，它基于 Google Gemini AI 和 Bark 推送服务构建，能够自动获取最新的金融新闻，进行智能分析，并将分析结果推送到您的设备。
+MarketPulse 是一个轻量级的金融资讯分析推送服务，它基于 Google Gemini AI 构建，能够自动获取最新的金融新闻，进行智能分析，并将包含明确**投资建议**、**信心指数**和**来源可靠度**的分析结果，通过 **Bark** 和 **PushPlus** 推送到您的设备。
 
 > 本项目完全开源，欢迎社区贡献和改进。如果您觉得这个项目对您有帮助，欢迎给个 star ⭐️
 
 ## 核心特性
 
 - 🤖 基于 [Google Gemini AI](https://github.com/google/generative-ai-python) 的智能分析
-- 🔔 通过 [Bark](https://github.com/Finb/Bark) 实现多设备实时推送
-- 📰 通过 [Finnhub](https://finnhub.io/) 获取最新金融新闻（支持 Reuters、Bloomberg 等权威来源）
-- 📊 提供市场影响评估和投资建议
-- ⚙️ 支持多设备推送
+- 🔔 通过 [Bark](https://github.com/Finb/Bark) 和 [PushPlus](https://www.pushplus.plus/) 实现多设备实时推送
+- 📰 通过 [Finnhub](https://finnhub.io/) 获取最新金融新闻
+- 📊 提供市场影响、投资建议、信心指数和来源可靠度（百分比形式）
+- ⚙️ 支持多渠道、多设备推送，并为不同渠道优化消息格式
 - 🔄 自动去重，避免重复推送
 - 🛡️ 安全的环境变量配置
+- 🎛️ 守护进程管理 (启动 / 停止 / 重启 / 状态)
+- 🧠 状态管理机制，可自动处理 API 推送频率限制
 
 ## 系统要求
 
@@ -31,7 +33,7 @@ MarketPulse 是一个轻量级的金融资讯分析推送服务，它基于 Goog
 
 ## 快速开始
 
-### 1. 安装 uv（推荐）
+### 1. 安装 uv（可选但推荐）
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -72,16 +74,24 @@ cp .env.example .env
 FINNHUB_API_KEY=your_finnhub_api_key
 GEMINI_API_KEY=your_gemini_api_key
 
-# Bark Keys
+# Bark Keys (至少填一个)
 BARK_KEY_1=your_first_bark_key
 # BARK_KEY_2=your_second_bark_key
-# BARK_KEY_3=your_third_bark_key
+
+# PushPlus Token (可选)
+PUSHPLUS_TOKEN=your_pushplus_token
+# PushPlus 推送群组 (可选, 留空则推送到个人)
+PUSHPLUS_TOPIC=your_topic_code
 ```
 
 ### 5. 运行服务
 
 ```bash
-python ./MarketPulse/main.py
+# 前台直接运行 (用于调试)
+python -m MarketPulse.main
+
+# 或通过守护进程在后台运行 (推荐)
+python -m MarketPulse.daemon_manager start
 ```
 
 ## 配置说明
@@ -129,20 +139,25 @@ NEWS_FETCH_INTERVAL = 30  # 分钟
 
 ## 推送效果
 
-推送通知包含以下信息：
-- 新闻标题
-- AI 分析摘要
-- 市场影响评估
-- 投资建议
-- 相关股票代码
-- 新闻来源链接
+<details>
+<summary>点击查看 Bark 和 PushPlus 推送效果图</summary>
+
+#### PushPlus 微信推送效果
+
+![PushPlus 效果图](img/pushplus.png)
+
+#### Bark 推送效果
+
+由于 Markdown 不支持视频嵌入，请[点击此处查看 Bark 推送录屏](img/bark.mp4)。
+
+</details>
 
 ## 注意事项
 
-1. 确保所有 API 密钥都已正确配置
-2. 建议使用 uv 进行环境管理，以获得更好的依赖解析性能
-3. 首次运行时会立即执行一次任务，之后按配置的间隔时间运行
-4. 已处理的新闻 ID 会保存在 `processed_news.json` 中，避免重复推送
+1.  **API 密钥**: 确保所有需要的 API 密钥都已正确配置。
+2.  **环境管理**: 建议使用 uv 进行环境管理，以获得更好的依赖解析性能。
+3.  **首次运行**: 首次运行时会立即执行一次任务，之后按 `config.py` 中配置的间隔时间运行。
+4.  **状态文件**: 已处理的新闻 ID 和推送服务状态（如推送限制）会保存在 `app_state.json` 中，避免重复推送和超出 API 限制。
 
 ## 依赖说明
 
@@ -185,6 +200,9 @@ python -m MarketPulse.daemon_manager start
 
 # 停止服务
 python -m MarketPulse.daemon_manager stop
+
+# 重启服务
+python -m MarketPulse.daemon_manager restart
 
 # 查看服务状态
 python -m MarketPulse.daemon_manager status
