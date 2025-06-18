@@ -20,7 +20,8 @@ FETCH_GENERAL_NEWS = True  # 获取宏观新闻
 FETCH_FOREX_NEWS = True  # 获取外汇新闻
 FETCH_CRYPTO_NEWS = True  # 获取加密货币新闻
 FETCH_COMPANY_NEWS = True  # 获取美股公司新闻
-FETCH_COMMODITY_NEWS = True # 获取商品新闻(包括黄金、石油等)
+FETCH_COMMODITY_NEWS = True  # 获取商品新闻(包括黄金、石油等)
+FETCH_CHINA_A_SHARE_NEWS = False  # 获取中国A股新闻，打开需要付费
 
 # 获取公司新闻的时间范围（天）
 COMPANY_NEWS_DAYS_AGO = 2
@@ -45,6 +46,29 @@ MARKET_SYMBOLS = {
         "TSLA",  # 特斯拉
     ],
 }
+
+# 中国A股核心公司列表
+CHINA_A_SHARE_SYMBOLS = [
+    # 科技与互联网巨头
+    "601138.SS",  # 工业富联 (Foxconn Industrial Internet)
+    "002230.SZ",  # 科大讯飞 (iFLYTEK)
+    # 新能源与制造业龙头
+    "300750.SZ",  # 宁德时代 (CATL)
+    "002594.SZ",  # 比亚迪 (BYD)
+    "601012.SS",  # 隆基绿能 (LONGi)
+    # 消费与白酒
+    "600519.SS",  # 贵州茅台 (Kweichow Moutai)
+    "000858.SZ",  # 五粮液 (Wuliangye)
+    # 金融与保险
+    "601318.SS",  # 中国平安 (Ping An Insurance)
+    "600036.SS",  # 招商银行 (China Merchants Bank)
+    # 医药健康
+    "600276.SS",  # 恒瑞医药 (Hengrui Medicine)
+    "603259.SS",  # 药明康德 (WuXi AppTec)
+    # 资源与周期股
+    "601899.SS",  # 紫金矿业 (Zijin Mining)
+    "600019.SS",  # 宝钢股份 (Baoshan Iron & Steel)
+]
 
 # ===================== 推送模块配置 =====================
 # Bark 设备的 Keys（从环境变量获取）
@@ -74,7 +98,7 @@ LOG_DIR = BASE_DIR / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
 # 应用日志
-APP_LOG_FILE = LOG_DIR / "market_pulse.log"
+APP_LOG_FILE = LOG_DIR / "app.log"
 # 守护进程日志
 DAEMON_LOG_FILE = LOG_DIR / "daemon.log"
 # 日志级别 (DEBUG, INFO, WARNING, ERROR, CRITICAL)

@@ -57,21 +57,32 @@ class NewsFetcher:
         return news_list[: config.MAX_NEWS_PER_CATEGORY]
 
     def _fetch_company_news(self):
-        """第二步：获取所有配置的股票代码的公司新闻"""
-        logging.info("正在获取美股公司相关新闻...")
+        """第二步：获取所有配置的股票代码的公司新闻，包括美股和A股。"""
+        logging.info("正在获取公司相关新闻...")
         all_company_news = []
-        symbols_to_fetch = [
-            symbol
-            for symbol_list in self.market_symbols.values()
-            for symbol in symbol_list
-        ]
+
+        # 初始化学员列表
+        symbols_to_fetch = []
+
+        # 添加美股市场的符号
+        for symbol_list in self.market_symbols.values():
+            symbols_to_fetch.extend(symbol_list)
+
+        # 如果开启了A股新闻，则添加A股代码
+        if config.FETCH_CHINA_A_SHARE_NEWS:
+            logging.info("已开启A股新闻获取，添加相关代码。")
+            symbols_to_fetch.extend(config.CHINA_A_SHARE_SYMBOLS)
+
+        # 使用集合去重
+        unique_symbols = list(set(symbols_to_fetch))
+        logging.info(f"将获取以下公司的代码新闻: {unique_symbols}")
 
         to_date = datetime.now().strftime("%Y-%m-%d")
         from_date = (
             datetime.now() - timedelta(days=config.COMPANY_NEWS_DAYS_AGO)
         ).strftime("%Y-%m-%d")
 
-        for symbol in symbols_to_fetch:
+        for symbol in unique_symbols:
             logging.info(f"  - 获取 {symbol} 的新闻...")
             url = f"https://finnhub.io/api/v1/company-news?symbol={symbol}&from={from_date}&to={to_date}&token={self.api_key}"
             news_list = self._make_request(url)
