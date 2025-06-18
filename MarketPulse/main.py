@@ -50,30 +50,51 @@ def run_job():
         state_manager.save_processed_ids(processed_ids)
         return
 
+    # 为快速查找文章来源，提前创建文章ID到内容的映射
+    articles_map = {article["id"]: article for article in new_articles}
     valid_analyses = []
+
     for idx, analysis in enumerate(analysis_results):
         if not isinstance(analysis, dict):
-            logging.error(
-                f"第{idx}个AI分析结果不是字典: {analysis} (类型: {type(analysis)})"
+            logging.warning(
+                f"第{idx}个AI分析结果不是字典，已跳过: {analysis} (类型: {type(analysis)})"
             )
             continue
-        insight = analysis.get("actionable_insight", {})
-        asset_name = insight.get("asset", {}).get("name")
+
+        insight = analysis.get("actionable_insight")
+        if not isinstance(insight, dict):
+            logging.warning(
+                f"过滤无效建议 (ID: {analysis.get('id')}), 原因: 'actionable_insight' 格式不正确 (类型: {type(insight)})"
+            )
+            continue
+
+        asset = insight.get("asset")
+        if not isinstance(asset, dict):
+            logging.warning(
+                f"过滤无效建议 (ID: {analysis.get('id')}), 原因: 'asset' 格式不正确 (类型: {type(asset)})"
+            )
+            continue
+
+        asset_name = asset.get("name")
         # 如果资产名称为"未知"，则认为是无效建议，直接过滤掉
         if not asset_name or asset_name == "未知":
             logging.info(f"过滤无效建议 (ID: {analysis.get('id')}, 原因: 资产名称未知)")
             continue
-        # 过滤掉"观望"的建议
-        if insight.get("action") == "观望":
-            logging.info(f"过滤无效建议 (ID: {analysis.get('id')}, 原因: 操作为观望)")
+
+        # 获取新闻来源以进行特殊处理
+        article_id = analysis.get("id")
+        source = articles_map.get(article_id, {}).get("source", "")
+
+        # 过滤掉"观望"的建议，但顶级新闻源的观望建议除外
+        if insight.get("action") == "观望" and source not in config.TOP_TIER_NEWS_SOURCES:
+            logging.info(f"过滤非顶级源的观望建议 (ID: {article_id}, 来源: {source})")
             continue
+        
         valid_analyses.append(analysis)
 
     # 6. 如果有有效建议，则汇总发送通知
     if valid_analyses:
         logging.info(f"分析完成，发现 {len(valid_analyses)} 条有效建议，准备发送通知。")
-        # 创建文章ID到文章内容的映射，方便查找URL
-        articles_map = {article["id"]: article for article in new_articles}
         notifier.send_summary_notification(valid_analyses, articles_map)
     else:
         logging.info("AI分析完成，但没有发现可操作的有效建议。")
