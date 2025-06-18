@@ -20,6 +20,7 @@ FETCH_GENERAL_NEWS = True  # 获取宏观新闻
 FETCH_FOREX_NEWS = True  # 获取外汇新闻
 FETCH_CRYPTO_NEWS = True  # 获取加密货币新闻
 FETCH_COMPANY_NEWS = True  # 获取美股公司新闻
+FETCH_COMMODITY_NEWS = True # 获取商品新闻(包括黄金、石油等)
 
 # 获取公司新闻的时间范围（天）
 COMPANY_NEWS_DAYS_AGO = 2

@@ -95,6 +95,8 @@ class NewsFetcher:
             raw_news.extend(self._fetch_news_by_category("crypto"))
         if config.FETCH_GENERAL_NEWS:
             raw_news.extend(self._fetch_news_by_category("general"))
+        if config.FETCH_COMMODITY_NEWS:
+            raw_news.extend(self._fetch_news_by_category("commodity"))
         if config.FETCH_COMPANY_NEWS:
             raw_news.extend(self._fetch_company_news())
 
