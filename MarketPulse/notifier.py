@@ -75,11 +75,7 @@ def send_summary_notification(valid_analyses, articles_map):
     # --- Bark 推送 (使用POST) ---
     if config.BARK_KEYS:
         success_count = 0
-        payload = {
-            "title": title,
-            "body": body_text,
-            "group": config.BARK_GROUP
-        }
+        payload = {"title": title, "body": body_text, "group": config.BARK_GROUP}
         for bark_key in config.BARK_KEYS:
             try:
                 bark_url = f"https://api.day.app/{bark_key}"
@@ -100,7 +96,9 @@ def send_summary_notification(valid_analyses, articles_map):
 
         if time.time() < restricted_until:
             restricted_time_str = format_datetime(restricted_until)
-            logging.warning(f"PushPlus因发送频率过高被限制，将在 {restricted_time_str} 后恢复。")
+            logging.warning(
+                f"PushPlus因发送频率过高被限制，将在 {restricted_time_str} 后恢复。"
+            )
         else:
             try:
                 body_html = body_text.replace("\n", "<br/>")
@@ -113,13 +111,19 @@ def send_summary_notification(valid_analyses, articles_map):
                 if config.PUSHPLUS_TOPIC:
                     pushplus_payload["topic"] = config.PUSHPLUS_TOPIC
 
-                response = requests.post("http://www.pushplus.plus/send", json=pushplus_payload)
+                response = requests.post(
+                    "http://www.pushplus.plus/send", json=pushplus_payload
+                )
                 response.raise_for_status()
 
                 result = response.json()
                 if result.get("code") == 900:
-                    logging.error("PushPlus通知失败: 用户账号因请求次数过多受限。将在6小时后重试。")
-                    app_state["pushplus_restricted_until"] = (datetime.now() + timedelta(hours=6)).timestamp()
+                    logging.error(
+                        "PushPlus通知失败: 用户账号因请求次数过多受限。将在6小时后重试。"
+                    )
+                    app_state["pushplus_restricted_until"] = (
+                        datetime.now() + timedelta(hours=6)
+                    ).timestamp()
                     state_manager.save_state(app_state)
                 elif result.get("code") != 200:
                     logging.error(f"PushPlus通知发送失败: {result.get('msg')}")

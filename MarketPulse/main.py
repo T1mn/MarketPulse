@@ -86,10 +86,13 @@ def run_job():
         source = articles_map.get(article_id, {}).get("source", "")
 
         # 过滤掉"观望"的建议，但顶级新闻源的观望建议除外
-        if insight.get("action") == "观望" and source not in config.TOP_TIER_NEWS_SOURCES:
+        if (
+            insight.get("action") == "观望"
+            and source not in config.TOP_TIER_NEWS_SOURCES
+        ):
             logging.info(f"过滤非顶级源的观望建议 (ID: {article_id}, 来源: {source})")
             continue
-        
+
         valid_analyses.append(analysis)
 
     # 6. 如果有有效建议，则汇总发送通知

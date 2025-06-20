@@ -17,7 +17,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # ===================== 新闻获取模块配置 =====================
 # 是否开启各类新闻的获取
 FETCH_GENERAL_NEWS = True  # 获取宏观新闻
-FETCH_TOP_TIER_NEWS = True # 单独获取顶级新闻源的新闻
+FETCH_TOP_TIER_NEWS = True  # 单独获取顶级新闻源的新闻
 FETCH_FOREX_NEWS = True  # 获取外汇新闻
 FETCH_CRYPTO_NEWS = True  # 获取加密货币新闻
 FETCH_COMPANY_NEWS = True  # 获取美股公司新闻
@@ -89,13 +89,13 @@ PUSHPLUS_TOPIC = os.getenv("PUSHPLUS_TOPIC", "")  # 默认为空
 
 # 顶级新闻源列表，用于提供更高质量的分析和推送
 TOP_TIER_NEWS_SOURCES = {
-    'Reuters',
-    'Bloomberg',
-    'Dow Jones Newswires',
-    'Associated Press',
-    'The Wall Street Journal',
-    'Financial Times',
-    'Dow Jones'
+    "Reuters",
+    "Bloomberg",
+    "Dow Jones Newswires",
+    "Associated Press",
+    "The Wall Street Journal",
+    "Financial Times",
+    "Dow Jones",
 }
 
 # ===================== 状态管理配置 =====================
