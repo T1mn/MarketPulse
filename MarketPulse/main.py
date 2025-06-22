@@ -34,6 +34,7 @@ def run_job():
         return
 
     logging.info(f"发现 {len(new_articles)} 条新文章，正在进行AI批量分析...")
+    logging.info("=" * 50)
 
     # 4. 对所有新新闻进行批量AI分析
     analysis_results = ai_analyzer.run_analysis_pipeline(new_articles)

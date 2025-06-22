@@ -22,8 +22,13 @@ FETCH_CRYPTO_NEWS = True  # 获取加密货币新闻
 FETCH_COMPANY_NEWS = True  # 获取美股公司新闻
 FETCH_CHINA_A_SHARE_NEWS = False  # 获取A股新闻
 
+# RSS新闻源配置
+FETCH_BLOOMBERG_RSS = True  # 获取彭博社RSS新闻
+FETCH_REUTERS_RSS = False  # 获取路透社RSS新闻（待实现）
+FETCH_WSJ_RSS = False  # 获取华尔街日报RSS新闻（待实现）
+
 # 新增：是否只看顶级来源的新闻
-FILTER_TO_TOP_TIER_ONLY = False  # 若设为True，则仅处理来自TOP_TIER_NEWS_SOURCES的新闻
+FILTER_TO_TOP_TIER_ONLY = True  # 若设为True，则仅处理来自TOP_TIER_NEWS_SOURCES的新闻
 
 # 获取公司新闻的时间范围（天）
 COMPANY_NEWS_DAYS_AGO = 3
@@ -119,3 +124,16 @@ LOG_LEVEL = "INFO"
 
 # PID文件路径
 PID_FILE = BASE_DIR / "market_pulse.pid"
+
+# 彭博社RSS源配置
+BLOOMBERG_RSS_SOURCES = {
+    "markets": "https://feeds.bloomberg.com/markets/news.rss",
+    "politics": "https://feeds.bloomberg.com/politics/news.rss",
+    "technology": "https://feeds.bloomberg.com/technology/news.rss",
+    "wealth": "https://feeds.bloomberg.com/wealth/news.rss",
+    "economics": "https://feeds.bloomberg.com/economics/news.rss",
+    "industries": "https://feeds.bloomberg.com/industries/news.rss",
+    "green": "https://feeds.bloomberg.com/green/news.rss",
+    "opinion": "https://feeds.bloomberg.com/bview/news.rss",
+    "crypto": "https://feeds.bloomberg.com/crypto/news.rss",
+}
