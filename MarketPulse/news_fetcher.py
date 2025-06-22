@@ -56,17 +56,6 @@ class NewsFetcher:
             return []
         return news_list[: config.MAX_NEWS_PER_CATEGORY]
 
-    def _partition_by_source(self, news_list):
-        """根据来源是否为顶级新闻源，将新闻列表分区"""
-        top_tier_articles = []
-        other_articles = []
-        for article in news_list:
-            if article.get("source") in config.TOP_TIER_NEWS_SOURCES:
-                top_tier_articles.append(article)
-            else:
-                other_articles.append(article)
-        return top_tier_articles, other_articles
-
     def _fetch_company_news(self):
         """第二步：获取所有配置的股票代码的公司新闻，包括美股和A股。"""
         logging.info("正在获取公司相关新闻...")
@@ -111,29 +100,13 @@ class NewsFetcher:
 
         # 分步获取原始新闻
         raw_news = []
-
-        # 处理普通类别新闻
+        if config.FETCH_GENERAL_NEWS:
+            raw_news.extend(self._fetch_news_by_category("general"))
         if config.FETCH_FOREX_NEWS:
             raw_news.extend(self._fetch_news_by_category("forex"))
         if config.FETCH_CRYPTO_NEWS:
             raw_news.extend(self._fetch_news_by_category("crypto"))
-
-        # 专门处理普通新闻和顶级新闻源
-        if config.FETCH_GENERAL_NEWS or config.FETCH_TOP_TIER_NEWS:
-            general_news_list = self._fetch_news_by_category("general")
-            top_tier_news, other_general_news = self._partition_by_source(
-                general_news_list
-            )
-
-            if config.FETCH_TOP_TIER_NEWS:
-                logging.info(f"获取到 {len(top_tier_news)} 条顶级来源新闻。")
-                raw_news.extend(top_tier_news)
-
-            if config.FETCH_GENERAL_NEWS:
-                raw_news.extend(other_general_news)
-
-        # 处理公司新闻
-        if config.FETCH_COMPANY_NEWS:
+        if config.FETCH_COMPANY_NEWS or config.FETCH_CHINA_A_SHARE_NEWS:
             raw_news.extend(self._fetch_company_news())
 
         if not raw_news:
@@ -142,6 +115,19 @@ class NewsFetcher:
 
         # --- 汇总和处理 ---
         logging.info(f"共获取到 {len(raw_news)} 条原始新闻，开始去重和格式化...")
+
+        # 如果开启了只看顶级来源的过滤
+        if config.FILTER_TO_TOP_TIER_ONLY:
+            initial_count = len(raw_news)
+            raw_news = [
+                article
+                for article in raw_news
+                if article.get("source") in config.TOP_TIER_NEWS_SOURCES
+            ]
+            logging.info(
+                f"已启用顶级来源过滤，从 {initial_count} 条新闻中筛选出 {len(raw_news)} 条。"
+            )
+
         processed_news = {}  # 使用字典通过ID去重
         for news in raw_news:
             if not news or not news.get("id"):

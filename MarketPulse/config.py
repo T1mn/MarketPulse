@@ -17,15 +17,16 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # ===================== 新闻获取模块配置 =====================
 # 是否开启各类新闻的获取
 FETCH_GENERAL_NEWS = True  # 获取宏观新闻
-FETCH_TOP_TIER_NEWS = True  # 单独获取顶级新闻源的新闻
 FETCH_FOREX_NEWS = True  # 获取外汇新闻
 FETCH_CRYPTO_NEWS = True  # 获取加密货币新闻
 FETCH_COMPANY_NEWS = True  # 获取美股公司新闻
-FETCH_COMMODITY_NEWS = True  # 获取商品新闻(包括黄金、石油等)
-FETCH_CHINA_A_SHARE_NEWS = False  # 获取中国A股新闻，打开需要付费
+FETCH_CHINA_A_SHARE_NEWS = False  # 获取A股新闻
+
+# 新增：是否只看顶级来源的新闻
+FILTER_TO_TOP_TIER_ONLY = False  # 若设为True，则仅处理来自TOP_TIER_NEWS_SOURCES的新闻
 
 # 获取公司新闻的时间范围（天）
-COMPANY_NEWS_DAYS_AGO = 2
+COMPANY_NEWS_DAYS_AGO = 3
 
 # 每个类别/代码获取的新闻数量限制
 MAX_NEWS_PER_CATEGORY = 10
