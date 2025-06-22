@@ -36,7 +36,7 @@ def run_job():
     logging.info(f"发现 {len(new_articles)} 条新文章，正在进行AI批量分析...")
 
     # 4. 对所有新新闻进行批量AI分析
-    analysis_results = ai_analyzer.analyze_news_in_batch(new_articles)
+    analysis_results = ai_analyzer.run_analysis_pipeline(new_articles)
 
     # 类型校验和异常处理，防止AI返回格式不符导致服务崩溃
     if not isinstance(analysis_results, list):
@@ -86,12 +86,12 @@ def run_job():
         source = articles_map.get(article_id, {}).get("source", "")
 
         # 过滤掉"观望"的建议，但顶级新闻源的观望建议除外
-        if (
-            insight.get("action") == "观望"
-            and source not in config.TOP_TIER_NEWS_SOURCES
-        ):
-            logging.info(f"过滤非顶级源的观望建议 (ID: {article_id}, 来源: {source})")
-            continue
+        # if (
+        #     insight.get("action") == "观望"
+        #     and source not in config.TOP_TIER_NEWS_SOURCES
+        # ):
+        #     logging.info(f"过滤非顶级源的观望建议 (ID: {article_id}, 来源: {source})")
+        #     continue
 
         valid_analyses.append(analysis)
 
