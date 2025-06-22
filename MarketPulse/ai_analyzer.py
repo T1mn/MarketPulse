@@ -40,13 +40,17 @@ class AIBaseAnalyst(ABC):
                 model=self.model_name, contents=prompt
             )
 
-            clean_json_str = response.text.strip().replace("```json", "").replace("```", "")
+            clean_json_str = (
+                response.text.strip().replace("```json", "").replace("```", "")
+            )
             analysis_results = json.loads(clean_json_str)
             logging.info(f"成功从AI模型 '{self.model_name}' 接收并解析了响应。")
             return analysis_results
 
         except json.JSONDecodeError as e:
-            logging.error(f"AI响应JSON解析失败: {e}. 响应内容: '{response.text[:200]}...'")
+            logging.error(
+                f"AI响应JSON解析失败: {e}. 响应内容: '{response.text[:200]}...'"
+            )
             return None
         except Exception as e:
             logging.error(f"调用AI模型 '{self.model_name}' 时发生未知错误: {e}")
@@ -152,7 +156,9 @@ def run_analysis_pipeline(articles: list):
         return None
 
     # 将摘要更新回文章列表，为市场分析师准备输入
-    summaries_map = {item["id"]: item["summary"] for item in summaries if isinstance(item, dict)}
+    summaries_map = {
+        item["id"]: item["summary"] for item in summaries if isinstance(item, dict)
+    }
     updated_articles = []
     for article in articles:
         new_article = article.copy()

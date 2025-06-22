@@ -103,13 +103,15 @@ class NewsFetcher:
         # 分别获取原始新闻
         finnhub_news = []
         rss_news = []
-        
+
         # 获取RSS新闻源（如彭博社）
-        if any([config.FETCH_BLOOMBERG_RSS, config.FETCH_REUTERS_RSS, config.FETCH_WSJ_RSS]):
+        if any(
+            [config.FETCH_BLOOMBERG_RSS, config.FETCH_REUTERS_RSS, config.FETCH_WSJ_RSS]
+        ):
             logging.info("开始获取RSS新闻源...")
             rss_news = fetch_rss_news()
             logging.info(f"从RSS源获取到 {len(rss_news)} 条新闻")
-            
+
             # 标准化RSS新闻字段并保存到本地文件
             standardized_rss_news = []
             for news in rss_news:
@@ -121,14 +123,14 @@ class NewsFetcher:
                     "source": news.get("source"),
                     "category": "top news",  # 固定为 top news
                     "datetime": news.get("datetime"),
-                    "related": news.get("related")
+                    "related": news.get("related"),
                 }
                 standardized_rss_news.append(standardized_news)
-            
-            with open("rss_news.json", "w", encoding='utf-8') as f:
+
+            with open("rss_news.json", "w", encoding="utf-8") as f:
                 json.dump(standardized_rss_news, f, ensure_ascii=False, indent=2)
             logging.info("RSS新闻已保存到 rss_news.json")
-        
+
         # 获取Finnhub API新闻
         if config.FETCH_GENERAL_NEWS:
             finnhub_news.extend(self._fetch_news_by_category("general"))
@@ -138,9 +140,9 @@ class NewsFetcher:
             finnhub_news.extend(self._fetch_news_by_category("crypto"))
         if config.FETCH_COMPANY_NEWS or config.FETCH_CHINA_A_SHARE_NEWS:
             finnhub_news.extend(self._fetch_company_news())
-        
+
         logging.info(f"从Finnhub API获取到 {len(finnhub_news)} 条新闻")
-        
+
         # 标准化Finnhub新闻字段并保存到本地文件
         standardized_finnhub_news = []
         for news in finnhub_news:
@@ -152,23 +154,25 @@ class NewsFetcher:
                 "source": news.get("source"),
                 "category": "finnhub",  # 固定为 finnhub
                 "datetime": news.get("datetime"),
-                "related": news.get("related")
+                "related": news.get("related"),
             }
             standardized_finnhub_news.append(standardized_news)
-        
-        with open("finnhub_news.json", "w", encoding='utf-8') as f:
+
+        with open("finnhub_news.json", "w", encoding="utf-8") as f:
             json.dump(standardized_finnhub_news, f, ensure_ascii=False, indent=2)
         logging.info("Finnhub新闻已保存到 finnhub_news.json")
 
         # 合并所有新闻（使用原始格式进行后续处理）
         raw_news = finnhub_news + standardized_rss_news
-        
+
         if not raw_news:
             logging.warning("未能从任何来源获取到新闻。")
             return []
 
         # --- 汇总和处理 ---
-        logging.info(f"共获取到 {len(raw_news)} 条原始新闻（Finnhub: {len(finnhub_news)}, RSS: {len(rss_news)}），开始去重和格式化...")
+        logging.info(
+            f"共获取到 {len(raw_news)} 条原始新闻（Finnhub: {len(finnhub_news)}, RSS: {len(rss_news)}），开始去重和格式化..."
+        )
 
         # 如果开启了只看顶级来源的过滤
         if config.FILTER_TO_TOP_TIER_ONLY:
@@ -177,7 +181,10 @@ class NewsFetcher:
                 article
                 for article in raw_news
                 # source contains any of the top tier news sources
-                if any(source in article.get("source") for source in config.TOP_TIER_NEWS_SOURCES)
+                if any(
+                    source in article.get("source")
+                    for source in config.TOP_TIER_NEWS_SOURCES
+                )
             ]
             logging.info(
                 f"已启用顶级来源过滤，从 {initial_count} 条新闻中筛选出 {len(raw_news)} 条。"
