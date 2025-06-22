@@ -24,3 +24,6 @@ requires.txt
 SOURCES.txt
 top_level.txt
 market_pulse.pid
+
+finnhub_news.json
+rss_news.json
