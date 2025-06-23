@@ -1,134 +1,161 @@
 import logging
 import time
-import urllib.parse
 from datetime import datetime, timedelta
 
-import pytz
 import requests
 
 from MarketPulse import config, state_manager
+from MarketPulse.ai_analyzer import run_summary_pipeline
 
 
 def format_datetime(timestamp):
-    """将Unix时间戳转换为中国上海时区的可读日期时间格式"""
-    if not isinstance(timestamp, (int, float)) or timestamp == 0:
-        return "未知时间"
+    """将时间戳格式化为易于阅读的字符串"""
+    return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _send_bark_notification(title, body, key):
+    """通过Bark发送通知"""
     try:
-        # 创建UTC时间
-        utc_dt = datetime.fromtimestamp(timestamp, tz=pytz.UTC)
-        # 转换为上海时区
-        shanghai_tz = pytz.timezone("Asia/Shanghai")
-        shanghai_dt = utc_dt.astimezone(shanghai_tz)
-        return shanghai_dt.strftime("%Y-%m-%d %H:%M:%S")
-    except Exception as e:
-        print(f"时间转换错误: {e}")
-        return "转换出错"
+        logging.info(f"正在向设备 {key[:5]}... 发送Bark通知...")
+        response = requests.post(
+            f"https://api.day.app/{key}",
+            json={
+                "title": title,
+                "body": body,
+                "group": config.BARK_GROUP,
+                "icon": "https://raw.githubusercontent.com/CRO-Manager/MarketPulse/master/img/logo.png",
+                "sound": "calypso",
+            },
+        )
+        response.raise_for_status()
+        logging.info(f"向设备 {key[:5]}... 发送Bark通知成功！")
+    except requests.RequestException as e:
+        logging.warning(f"向设备 {key[:5]}... 发送Bark通知失败: {e}")
 
 
-def send_summary_notification(valid_analyses, articles_map):
-    """
-    将所有有效的分析结果汇总成单条消息，并通过Bark和PushPlus发送。
-    """
-    if not valid_analyses:
-        logging.info("没有有效的分析结果可以发送。")
+def _send_pushplus_notification(title, body):
+    """通过PushPlus发送通知"""
+    app_state = state_manager.load_state()
+    restricted_until = app_state.get("pushplus_restricted_until", 0)
+
+    if time.time() < restricted_until:
+        restricted_time_str = format_datetime(restricted_until)
+        logging.warning(
+            f"PushPlus因发送频率过高被限制，将在 {restricted_time_str} 后恢复。"
+        )
         return
 
-    # --- 统一构建消息内容 ---
-    title = f"📈 MarketPulse - {len(valid_analyses)}条市场洞察"
+    try:
+        body_html = body.replace("\n", "<br/>")
+        pushplus_payload = {
+            "token": config.PUSHPLUS_TOKEN,
+            "title": title,
+            "content": body_html,
+            "template": "html",
+        }
+        if config.PUSHPLUS_TOPIC:
+            pushplus_payload["topic"] = config.PUSHPLUS_TOPIC
+
+        response = requests.post(
+            "http://www.pushplus.plus/send", json=pushplus_payload
+        )
+        response.raise_for_status()
+
+        result = response.json()
+        if result.get("code") == 900:
+            logging.error("PushPlus通知失败: 用户账号因请求次数过多受限。将在6小时后重试。")
+            app_state["pushplus_restricted_until"] = (
+                datetime.now() + timedelta(hours=6)
+            ).timestamp()
+            state_manager.save_state(app_state)
+        elif result.get("code") != 200:
+            logging.error(f"PushPlus通知发送失败: {result.get('msg')}")
+        else:
+            logging.info("PushPlus通知发送成功！")
+
+    except requests.RequestException as e:
+        logging.error(f"发送PushPlus通知失败: {e}")
+    except Exception as e:
+        logging.error(f"处理PushPlus响应时出错: {e}")
+
+
+def send_summary_notification(analyses, articles_map, batch_info=(1, 1)):
+    """
+    汇总分析结果，并发送单一的摘要通知。
+    现在支持分批发送，并能在推送前生成最终摘要。
+    """
+    if not analyses:
+        return
+
     body_parts = []
-    for analysis in valid_analyses:
-        summary = analysis.get("summary", "无摘要")
+    for analysis in analyses:
+        article_id = analysis.get("id")
+        original_article = articles_map.get(article_id, {})
+        source = original_article.get("source", "未知来源")
+        url = original_article.get("url", "")
+        
+        # 标注顶级新闻来源
+        source_display = source
+        if "Bloomberg" in source:
+            source_display += " (顶级新闻来源)"
+
         insight = analysis.get("actionable_insight", {})
         asset = insight.get("asset", {})
-        source_confidence = analysis.get("source_confidence", "未知")
+        asset_name = asset.get("name")
+        asset_ticker = asset.get("ticker")
+        action = insight.get("action")
+        confidence = insight.get("confidence")
+        
+        # 过滤无效建议
+        if (
+            not asset_name or asset_name == "未知资产" or
+            not asset_ticker or
+            not action or action == "无建议" or
+            not confidence or confidence == "未知"
+        ):
+            logging.info(f"过滤无效建议 (ID: {article_id})，因包含无效内容。")
+            continue
 
-        article_id = analysis.get("id")
-        article_info = articles_map.get(article_id, {})
-        source_medium = article_info.get("source", "未知来源")
-        source_url = article_info.get("url", "无链接")
-
-        asset_name = asset.get("name", "未知资产")
-        asset_ticker = asset.get("ticker", "")
-        action = insight.get("action", "无建议")
-
-        is_top_tier = source_medium in config.TOP_TIER_NEWS_SOURCES
-        star_emoji = "⭐️ " if is_top_tier else ""
-
-        suggestion_title = f"{star_emoji}▶︎ {action} {asset_name}"
-        if asset_ticker and asset_ticker != "未知":
-            suggestion_title += f" ({asset_ticker})"
-        body_parts.append(suggestion_title)
-
-        body_parts.append(f"   摘要: {summary}")
-        reasoning = insight.get("reasoning", "无")
-        confidence = insight.get("confidence", "未知")
-        body_parts.append(f"   原因: {reasoning}")
-        body_parts.append(
-            f"   判断可信度: {confidence} | 来源可信度: {source_confidence}"
+        part = (
+            f"📈 {asset_name} ({asset_ticker})\n"
+            f"   - 摘要: {analysis.get('summary', 'N/A')}\n"
+            f"   - 建议: {action} (信心: {confidence})\n"
+            f"   - 理由: {insight.get('reasoning', 'N/A')}\n"
+            f"   - 来源: {source_display}\n"
+            f"   - 链接: {url}"
         )
-        body_parts.append(f"   来源: {source_medium}")
-        body_parts.append(f"   链接: {source_url}")
-        body_parts.append("")
+        body_parts.append(part)
 
-    body_text = "\n".join(body_parts)
+    if not body_parts:
+        logging.info("所有建议都被过滤，没有内容可推送。")
+        return
+        
+    full_body = "\n\n".join(body_parts)
+    
+    # 生成最终摘要
+    final_summary = run_summary_pipeline(full_body)
+    
+    final_body_with_summary = f"【AI市场洞察总结】\n{final_summary}\n\n{full_body}"
 
-    # --- Bark 推送 (使用POST) ---
-    if config.BARK_KEYS:
-        success_count = 0
-        payload = {"title": title, "body": body_text, "group": config.BARK_GROUP}
-        for bark_key in config.BARK_KEYS:
-            try:
-                bark_url = f"https://api.day.app/{bark_key}"
-                response = requests.post(bark_url, json=payload)
-                response.raise_for_status()
-                success_count += 1
-            except requests.RequestException as e:
-                logging.warning(f"向设备 {bark_key[:5]}... 发送Bark通知失败: {e}")
+    current_batch, total_batches = batch_info
+    title = config.BARK_GROUP
+    if total_batches > 1:
+        title += f" ({current_batch}/{total_batches})"
+    
+    # 限制推送内容长度，避免HTTP 413错误
+    max_length = 3500  # Bark的实际限制约为4KB
+    if len(final_body_with_summary.encode('utf-8')) > max_length:
+        logging.warning("推送内容过长，将被截断。")
+        # 尝试保留总结部分
+        truncated_body = final_body_with_summary[:max_length] + "\n...(内容过长，已被截断)"
+    else:
+        truncated_body = final_body_with_summary
 
-        if success_count > 0:
-            logging.info(f"Bark通知发送成功！ (发送到 {success_count} 个设备)")
-
-    # --- PushPlus 推送 (使用POST) ---
+    for key in config.BARK_KEYS:
+        _send_bark_notification(title, truncated_body, key)
+        # 在分批推送之间增加延迟，避免过于频繁
+        if total_batches > 1:
+            time.sleep(2)
+    
     if config.PUSHPLUS_TOKEN:
-        # 检查是否处于限制状态
-        app_state = state_manager.load_state()
-        restricted_until = app_state.get("pushplus_restricted_until", 0)
-
-        if time.time() < restricted_until:
-            restricted_time_str = format_datetime(restricted_until)
-            logging.warning(
-                f"PushPlus因发送频率过高被限制，将在 {restricted_time_str} 后恢复。"
-            )
-        else:
-            try:
-                body_html = body_text.replace("\n", "<br/>")
-                pushplus_payload = {
-                    "token": config.PUSHPLUS_TOKEN,
-                    "title": title,
-                    "content": body_html,
-                    "template": "html",
-                }
-                if config.PUSHPLUS_TOPIC:
-                    pushplus_payload["topic"] = config.PUSHPLUS_TOPIC
-
-                response = requests.post(
-                    "http://www.pushplus.plus/send", json=pushplus_payload
-                )
-                response.raise_for_status()
-
-                result = response.json()
-                if result.get("code") == 900:
-                    logging.error(
-                        "PushPlus通知失败: 用户账号因请求次数过多受限。将在6小时后重试。"
-                    )
-                    app_state["pushplus_restricted_until"] = (
-                        datetime.now() + timedelta(hours=6)
-                    ).timestamp()
-                    state_manager.save_state(app_state)
-                elif result.get("code") != 200:
-                    logging.error(f"PushPlus通知发送失败: {result.get('msg')}")
-
-            except requests.RequestException as e:
-                logging.error(f"发送PushPlus通知失败: {e}")
-            except Exception as e:
-                logging.error(f"处理PushPlus响应时出错: {e}")
+        _send_pushplus_notification(title, truncated_body)

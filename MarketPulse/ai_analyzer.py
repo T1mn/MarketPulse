@@ -94,7 +94,7 @@ class MarketAnalyst(AIBaseAnalyst):
 
     def __init__(self):
         super().__init__()
-        self.model_name = "gemini-2.5-flash-preview-05-20"
+        self.model_name = "gemini-2.0-flash-lite"
 
     def _create_prompt(self, articles: list) -> str:
         input_articles_str = json.dumps(
@@ -111,7 +111,7 @@ class MarketAnalyst(AIBaseAnalyst):
             ensure_ascii=False,
         )
         return f"""
-        你是一位顶级的金融分析师。请基于以下JSON格式的新闻文章列表（内容已被精炼），为每一篇文章提供独立的、专业的市场分析和投资建议。
+        你是一位顶级的金融分析师。请基于以下JSON格式的新闻文章列表，为每一篇文章提供独立的、专业的市场分析和投资建议。
         请严格按照指定的JSON数组格式输出你的分析结果。
 
         新闻文章列表:
@@ -126,9 +126,9 @@ class MarketAnalyst(AIBaseAnalyst):
             "market_impact": {{"market": "...", "impact_level": "..."}},
             "actionable_insight": {{
                 "asset": {{"name": "...", "ticker": "..."}},
-                "action": "...",
+                "action": "做多或做空或观望",
                 "reasoning": "...",
-                "confidence": "..."
+                "confidence": "0-100%的信心"
             }}
         }}
 
@@ -164,7 +164,7 @@ def run_analysis_pipeline(articles: list):
         new_article = article.copy()
         if new_article.get("id") in summaries_map:
             new_article["content"] = summaries_map[new_article["id"]]
-            logging.info(f"文章(ID: {new_article['id']})内容已更新为摘要。")
+            # logging.info(f"文章(ID: {new_article['id']})内容已更新为摘要。")
         updated_articles.append(new_article)
 
     logging.info("信息提取完成，启动市场分析流程...")
@@ -172,3 +172,60 @@ def run_analysis_pipeline(articles: list):
     market_analyses = analyst.run(updated_articles)
 
     return market_analyses
+
+
+class SummaryGenerator(AIBaseAnalyst):
+    """总结归纳师，负责将分析结果汇总成精炼的摘要。"""
+
+    def __init__(self):
+        super().__init__()
+        # 用户指定使用 gemini-2.0-flash-lite，我们使用最接近的 gemini-1.5-flash
+        self.model_name = "gemini-1.5-flash"
+
+    def _create_prompt(self, content: str) -> str:
+        return f"""
+        你是一个专业的市场评论员。请将以下市场分析内容总结归纳在100字以内，提取最核心的投资洞见。
+        你的总结需要精炼、专业、直击要点。
+
+        待总结的内容:
+        ---
+        {content}
+        ---
+
+        请直接返回总结内容，不要包含任何其他说明或标题。
+        """
+
+    def run(self, content: str):
+        """
+        重写 run 方法以接受字符串内容。
+        """
+        if not content:
+            return "没有发现需要总结的内容。"
+
+        prompt = self._create_prompt(content)
+
+        try:
+            logging.info(f"向AI模型 '{self.model_name}' 发送总结请求...")
+            response = self.client.models.generate_content(
+                model=self.model_name, contents=prompt
+            )
+            summary = response.text.strip()
+            logging.info("成功生成市场分析总结。")
+            return summary
+
+        except Exception as e:
+            logging.error(f"调用AI模型 '{self.model_name}' 进行总结时发生错误: {e}")
+            if "response" in locals() and hasattr(response, "prompt_feedback"):
+                logging.error(f"Prompt Feedback: {response.prompt_feedback}")
+            return "AI总结生成失败。"
+
+
+def run_summary_pipeline(content: str) -> str:
+    """
+    运行总结归纳流水线。
+    这是外部模块调用的唯一入口。
+    """
+    logging.info("启动总结归纳流程...")
+    generator = SummaryGenerator()
+    summary = generator.run(content)
+    return summary
