@@ -121,7 +121,7 @@ def send_summary_notification(analyses, articles_map, batch_info=(1, 1)):
 
         # 摘要作为小标题，建议中包含资产信息
         part = (
-            f"{analysis.get('summary', 'N/A')}\n"
+            f"[{analysis.get('summary', 'N/A')}]\n"
             f"   - 建议: {action} {asset_name} ({asset_ticker}) (信心: {confidence})\n"
             f"   - 理由: {insight.get('reasoning', 'N/A')}\n"
             f"   - 来源: {source_display}"

@@ -39,6 +39,10 @@ class AIBaseAnalyst(ABC):
                 model=self.model_name, contents=prompt
             )
 
+            if not response or not response.text:
+                logging.error("AI模型返回了空响应。")
+                return None
+
             clean_json_str = (
                 response.text.strip().replace("```json", "").replace("```", "")
             )
@@ -48,7 +52,7 @@ class AIBaseAnalyst(ABC):
 
         except json.JSONDecodeError as e:
             logging.error(
-                f"AI响应JSON解析失败: {e}. 响应内容: '{response.text[:200]}...'"
+                f"AI响应JSON解析失败: {e}. 响应内容: '{response.text[:200] if response and response.text else 'None'}...'"
             )
             return None
         except Exception as e:
@@ -79,7 +83,7 @@ class InformationExtractor(AIBaseAnalyst):
             ensure_ascii=False,
         )
         return f"""
-        你是一个高效的信息提取专家。请为以下新闻列表中的每一篇文章生成一个不超过50字的精炼摘要。
+        你是一个高效的信息提取专家。请使用中文为以下新闻列表中的每一篇文章生成一个不超过50字的精炼摘要。
         新闻文章列表: {input_articles_str}
         请严格按照以下JSON数组格式返回结果，每个对象包含文章的`id`和你的`summary`。
         [
@@ -110,7 +114,7 @@ class MarketAnalyst(AIBaseAnalyst):
             ensure_ascii=False,
         )
         return f"""
-        你是一位顶级的金融分析师。请基于以下JSON格式的新闻文章列表，为每一篇文章提供独立的、专业的市场分析和投资建议。
+        你是一位顶级的金融分析师。请使用中文，基于以下JSON格式的新闻文章列表，为每一篇文章提供独立的、专业的市场分析和投资建议。
         请严格按照指定的JSON数组格式输出你的分析结果。
 
         新闻文章列表:
@@ -131,13 +135,11 @@ class MarketAnalyst(AIBaseAnalyst):
             }}
         }}
 
-        ---
-        ### 特别指令：顶级新闻社VIP分析标准
+        特别指令：顶级新闻社VIP分析标准
         对于来源为以下列表中的新闻，你的分析必须遵循更高标准：
-        - **顶级新闻社列表**: {list(config.TOP_TIER_NEWS_SOURCES)}
-        - **市场影响分析**: 必须给出最具体的影响范围，严禁使用模糊词汇。
-        - **来源可信度**: 必须给出95%-100%之间的一个具体数值。
-        ---
+        - 顶级新闻社列表: {list(config.TOP_TIER_NEWS_SOURCES)}
+        - 市场影响分析: 必须给出最具体的影响范围，严禁使用模糊词汇。
+        - 来源可信度: 必须给出95%-100%之间的一个具体数值。
         """
 
 
@@ -182,7 +184,7 @@ class SummaryGenerator(AIBaseAnalyst):
 
     def _create_prompt(self, content: str) -> str:
         return f"""
-        你是一个专业的市场评论员。请将以下市场分析内容总结归纳在100字以内，提取最核心的投资洞见。
+        你是一个专业的市场评论员。请使用中文将以下市场分析内容总结归纳在100字以内，提取最核心的投资洞见。
         你的总结需要精炼、专业、直击要点。
 
         待总结的内容:
@@ -206,6 +208,11 @@ class SummaryGenerator(AIBaseAnalyst):
             response = self.client.models.generate_content(
                 model=self.model_name, contents=prompt
             )
+
+            if not response or not response.text:
+                logging.error("AI模型返回了空响应。")
+                return "AI总结生成失败：模型返回空响应。"
+
             summary = response.text.strip()
             logging.info("成功生成市场分析总结。")
             return summary
