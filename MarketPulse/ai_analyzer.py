@@ -34,7 +34,6 @@ class AIBaseAnalyst(ABC):
         prompt = self._create_prompt(articles)
 
         try:
-            logging.info(f"向AI模型 '{self.model_name}' 发送请求...")
             # 使用 client.generate_content，功能与您期望的完全一致
             response = self.client.models.generate_content(
                 model=self.model_name, contents=prompt
@@ -164,7 +163,6 @@ def run_analysis_pipeline(articles: list):
         new_article = article.copy()
         if new_article.get("id") in summaries_map:
             new_article["content"] = summaries_map[new_article["id"]]
-            # logging.info(f"文章(ID: {new_article['id']})内容已更新为摘要。")
         updated_articles.append(new_article)
 
     logging.info("信息提取完成，启动市场分析流程...")
@@ -180,7 +178,7 @@ class SummaryGenerator(AIBaseAnalyst):
     def __init__(self):
         super().__init__()
         # 用户指定使用 gemini-2.0-flash-lite，我们使用最接近的 gemini-1.5-flash
-        self.model_name = "gemini-1.5-flash"
+        self.model_name = "gemini-2.0-flash-lite"
 
     def _create_prompt(self, content: str) -> str:
         return f"""
@@ -205,7 +203,6 @@ class SummaryGenerator(AIBaseAnalyst):
         prompt = self._create_prompt(content)
 
         try:
-            logging.info(f"向AI模型 '{self.model_name}' 发送总结请求...")
             response = self.client.models.generate_content(
                 model=self.model_name, contents=prompt
             )
