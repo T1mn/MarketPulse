@@ -36,22 +36,28 @@ def run_job():
     # --- 分批处理逻辑 ---
     chunk_size = 5
     article_chunks = [
-        new_articles[i:i + chunk_size]
+        new_articles[i : i + chunk_size]
         for i in range(0, len(new_articles), chunk_size)
     ]
     total_batches = len(article_chunks)
-    logging.info(f"发现 {len(new_articles)} 条新文章，将分 {total_batches} 批进行处理...")
+    logging.info(
+        f"发现 {len(new_articles)} 条新文章，将分 {total_batches} 批进行处理..."
+    )
 
     for i, chunk in enumerate(article_chunks):
         current_batch = i + 1
         logging.info("=" * 50)
-        logging.info(f"正在处理第 {current_batch}/{total_batches} 批，包含 {len(chunk)} 条文章...")
+        logging.info(
+            f"正在处理第 {current_batch}/{total_batches} 批，包含 {len(chunk)} 条文章..."
+        )
 
         # 4. 对当前批次的新闻进行批量AI分析
         analysis_results = ai_analyzer.run_analysis_pipeline(chunk)
 
         if not isinstance(analysis_results, list):
-            logging.error(f"批次 {current_batch} 的AI分析返回结果不是列表，跳过此批次。")
+            logging.error(
+                f"批次 {current_batch} 的AI分析返回结果不是列表，跳过此批次。"
+            )
             # 记录失败批次的ID，避免重复处理
             for article in chunk:
                 if article.get("id"):
@@ -64,24 +70,33 @@ def run_job():
         for analysis in analysis_results:
             insight = analysis.get("actionable_insight", {})
             asset = insight.get("asset", {})
-            if not isinstance(insight, dict) or not isinstance(asset, dict) or not asset.get("name") or asset.get("name") == "未知":
+            if (
+                not isinstance(insight, dict)
+                or not isinstance(asset, dict)
+                or not asset.get("name")
+                or asset.get("name") == "未知"
+            ):
                 continue
             valid_analyses.append(analysis)
 
         # 6. 如果有有效建议，则为当前批次发送通知
         if valid_analyses:
-            logging.info(f"批次 {current_batch} 分析完成，发现 {len(valid_analyses)} 条有效建议，准备发送通知。")
+            logging.info(
+                f"批次 {current_batch} 分析完成，发现 {len(valid_analyses)} 条有效建议，准备发送通知。"
+            )
             notifier.send_summary_notification(
                 valid_analyses, articles_map, batch_info=(current_batch, total_batches)
             )
         else:
-            logging.info(f"批次 {current_batch} AI分析完成，但没有发现可操作的有效建议。")
+            logging.info(
+                f"批次 {current_batch} AI分析完成，但没有发现可操作的有效建议。"
+            )
 
         # 7. 将当前批次处理过的文章ID加入集合
         for article in chunk:
             if article.get("id"):
                 processed_ids.add(article.get("id"))
-    
+
     # 所有批次处理完毕后，统一保存状态
     state_manager.save_processed_ids(processed_ids)
 

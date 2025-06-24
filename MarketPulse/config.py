@@ -16,11 +16,12 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # ===================== 新闻获取模块配置 =====================
 # 是否开启各类新闻的获取
-FETCH_GENERAL_NEWS = True  # 获取宏观新闻
-FETCH_FOREX_NEWS = True  # 获取外汇新闻
-FETCH_CRYPTO_NEWS = True  # 获取加密货币新闻
-FETCH_COMPANY_NEWS = True  # 获取美股公司新闻
+FETCH_GENERAL_NEWS = False  # 获取宏观新闻
+FETCH_FOREX_NEWS = False  # 获取外汇新闻
+FETCH_CRYPTO_NEWS = False  # 获取加密货币新闻
+FETCH_COMPANY_NEWS = False  # 获取美股公司新闻
 FETCH_CHINA_A_SHARE_NEWS = False  # 获取A股新闻
+FETCH_CLS_NEWS = True  # 获取财联社电报新闻
 
 # RSS新闻源配置
 FETCH_BLOOMBERG_RSS = True  # 获取彭博社RSS新闻
@@ -38,7 +39,7 @@ MAX_NEWS_PER_CATEGORY = 10
 MAX_NEWS_PER_SYMBOL = 10
 
 # 新闻获取间隔（分钟）
-NEWS_FETCH_INTERVAL = 15
+NEWS_FETCH_INTERVAL = 10
 
 # 市场分类配置
 MARKET_SYMBOLS = {
@@ -102,6 +103,7 @@ TOP_TIER_NEWS_SOURCES = {
     "The Wall Street Journal",
     "Financial Times",
     "Dow Jones",
+    "CLS",
 }
 
 # ===================== 状态管理配置 =====================
@@ -137,3 +139,6 @@ BLOOMBERG_RSS_SOURCES = {
     "opinion": "https://feeds.bloomberg.com/bview/news.rss",
     "crypto": "https://feeds.bloomberg.com/crypto/news.rss",
 }
+
+# 新增：是否保存原始新闻到本地
+SAVE_RAW_NEWS_TO_FILE = True
