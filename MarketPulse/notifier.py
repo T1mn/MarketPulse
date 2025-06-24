@@ -56,14 +56,14 @@ def _send_pushplus_notification(title, body):
         if config.PUSHPLUS_TOPIC:
             pushplus_payload["topic"] = config.PUSHPLUS_TOPIC
 
-        response = requests.post(
-            "http://www.pushplus.plus/send", json=pushplus_payload
-        )
+        response = requests.post("http://www.pushplus.plus/send", json=pushplus_payload)
         response.raise_for_status()
 
         result = response.json()
         if result.get("code") == 900:
-            logging.error("PushPlus通知失败: 用户账号因请求次数过多受限。将在6小时后重试。")
+            logging.error(
+                "PushPlus通知失败: 用户账号因请求次数过多受限。将在6小时后重试。"
+            )
             app_state["pushplus_restricted_until"] = (
                 datetime.now() + timedelta(hours=6)
             ).timestamp()
@@ -92,8 +92,8 @@ def send_summary_notification(analyses, articles_map, batch_info=(1, 1)):
         article_id = analysis.get("id")
         original_article = articles_map.get(article_id, {})
         source = original_article.get("source", "未知来源")
-        url = original_article.get("url", "")
-        
+        # url = original_article.get("url", "")  # 链接不再展示
+
         # 标注顶级新闻来源
         source_display = source
         if "Bloomberg" in source:
@@ -105,49 +105,53 @@ def send_summary_notification(analyses, articles_map, batch_info=(1, 1)):
         asset_ticker = asset.get("ticker")
         action = insight.get("action")
         confidence = insight.get("confidence")
-        
+
         # 过滤无效建议
         if (
-            not asset_name or asset_name == "未知资产" or
-            not asset_ticker or
-            not action or action == "无建议" or
-            not confidence or confidence == "未知"
+            not asset_name
+            or asset_name == "未知资产"
+            or not asset_ticker
+            or not action
+            or action == "无建议"
+            or not confidence
+            or confidence == "未知"
         ):
             logging.info(f"过滤无效建议 (ID: {article_id})，因包含无效内容。")
             continue
 
+        # 摘要作为小标题，建议中包含资产信息
         part = (
-            f"📈 {asset_name} ({asset_ticker})\n"
-            f"   - 摘要: {analysis.get('summary', 'N/A')}\n"
-            f"   - 建议: {action} (信心: {confidence})\n"
+            f"{analysis.get('summary', 'N/A')}\n"
+            f"   - 建议: {action} {asset_name} ({asset_ticker}) (信心: {confidence})\n"
             f"   - 理由: {insight.get('reasoning', 'N/A')}\n"
-            f"   - 来源: {source_display}\n"
-            f"   - 链接: {url}"
+            f"   - 来源: {source_display}"
         )
         body_parts.append(part)
 
     if not body_parts:
         logging.info("所有建议都被过滤，没有内容可推送。")
         return
-        
+
     full_body = "\n\n".join(body_parts)
-    
+
     # 生成最终摘要
     final_summary = run_summary_pipeline(full_body)
-    
+
     final_body_with_summary = f"【AI市场洞察总结】\n{final_summary}\n\n{full_body}"
 
     current_batch, total_batches = batch_info
     title = config.BARK_GROUP
     if total_batches > 1:
         title += f" ({current_batch}/{total_batches})"
-    
+
     # 限制推送内容长度，避免HTTP 413错误
     max_length = 3500  # Bark的实际限制约为4KB
-    if len(final_body_with_summary.encode('utf-8')) > max_length:
+    if len(final_body_with_summary.encode("utf-8")) > max_length:
         logging.warning("推送内容过长，将被截断。")
         # 尝试保留总结部分
-        truncated_body = final_body_with_summary[:max_length] + "\n...(内容过长，已被截断)"
+        truncated_body = (
+            final_body_with_summary[:max_length] + "\n...(内容过长，已被截断)"
+        )
     else:
         truncated_body = final_body_with_summary
 
@@ -156,6 +160,6 @@ def send_summary_notification(analyses, articles_map, batch_info=(1, 1)):
         # 在分批推送之间增加延迟，避免过于频繁
         if total_batches > 1:
             time.sleep(2)
-    
+
     if config.PUSHPLUS_TOKEN:
         _send_pushplus_notification(title, truncated_body)
