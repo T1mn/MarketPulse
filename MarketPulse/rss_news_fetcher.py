@@ -166,7 +166,6 @@ class RSSNewsFetcher:
         Returns:
             格式化后的新闻列表
         """
-        logging.info(f"正在从RSS源获取新闻: {source_name} ({rss_url})")
 
         # 获取RSS内容
         rss_content = self._make_request(rss_url)
@@ -195,7 +194,6 @@ class RSSNewsFetcher:
                 logging.error(f"格式化RSS条目失败: {e}")
                 continue
 
-        logging.info(f"从 {source_name} 成功获取 {len(formatted_news)} 条新闻")
         return formatted_news
 
     def fetch_bloomberg_news(self) -> List[Dict[str, Any]]:
