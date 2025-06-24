@@ -27,3 +27,6 @@ market_pulse.pid
 
 finnhub_news.json
 rss_news.json
+
+cls_news.json
+cls_news.xml
