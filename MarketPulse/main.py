@@ -3,8 +3,9 @@ import time
 
 import schedule
 
-from MarketPulse import ai_analyzer, config, news_fetcher, notifier, state_manager
+from MarketPulse import ai_analyzer, config, notifier, state_manager
 from MarketPulse.logger_setup import setup_logging
+from MarketPulse.news_aggregator import fetch_latest_news
 
 
 def run_job():
@@ -19,7 +20,7 @@ def run_job():
     logging.info(f"已加载 {len(processed_ids)} 个已处理的新闻ID。")
 
     # 2. 获取最新新闻
-    articles = news_fetcher.fetch_latest_news()
+    articles = fetch_latest_news()
     if not articles:
         logging.info("任务结束: 没有从API获取到新闻。")
         return

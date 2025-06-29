@@ -24,11 +24,12 @@ FETCH_CHINA_A_SHARE_NEWS = False  # 获取A股新闻
 FETCH_CLS_NEWS = True  # 获取财联社电报新闻
 
 # RSS新闻源配置
-FETCH_BLOOMBERG_RSS = True  # 获取彭博社RSS新闻
+FETCH_BLOOMBERG_RSS = False  # 获取彭博社RSS新闻
 FETCH_REUTERS_RSS = False  # 获取路透社RSS新闻（待实现）
 FETCH_WSJ_RSS = False  # 获取华尔街日报RSS新闻（待实现）
+FETCH_NOTATESLA_NEWS = True  # 获取 "Not a Tesla App" 新闻
 
-# 新增：是否只看顶级来源的新闻
+# 是否只看顶级来源的新闻
 FILTER_TO_TOP_TIER_ONLY = True  # 若设为True，则仅处理来自TOP_TIER_NEWS_SOURCES的新闻
 
 # 获取公司新闻的时间范围（天）
@@ -39,7 +40,7 @@ MAX_NEWS_PER_CATEGORY = 10
 MAX_NEWS_PER_SYMBOL = 10
 
 # 新闻获取间隔（分钟）
-NEWS_FETCH_INTERVAL = 10
+NEWS_FETCH_INTERVAL = 30
 
 # 市场分类配置
 MARKET_SYMBOLS = {
@@ -104,6 +105,7 @@ TOP_TIER_NEWS_SOURCES = {
     "Financial Times",
     "Dow Jones",
     "CLS",
+    "Not a Tesla App",
 }
 
 # ===================== 状态管理配置 =====================
@@ -132,13 +134,10 @@ BLOOMBERG_RSS_SOURCES = {
     "markets": "https://feeds.bloomberg.com/markets/news.rss",
     "politics": "https://feeds.bloomberg.com/politics/news.rss",
     "technology": "https://feeds.bloomberg.com/technology/news.rss",
-    "wealth": "https://feeds.bloomberg.com/wealth/news.rss",
-    "economics": "https://feeds.bloomberg.com/economics/news.rss",
-    "industries": "https://feeds.bloomberg.com/industries/news.rss",
-    "green": "https://feeds.bloomberg.com/green/news.rss",
-    "opinion": "https://feeds.bloomberg.com/bview/news.rss",
-    "crypto": "https://feeds.bloomberg.com/crypto/news.rss",
 }
+
+# Not a Tesla App RSS源配置
+NOTATESLA_RSS_URL = "https://www.notateslaapp.com/rss"
 
 # 新增：是否保存原始新闻到本地
 SAVE_RAW_NEWS_TO_FILE = True

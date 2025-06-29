@@ -252,10 +252,7 @@ class RSSNewsFetcher:
         return all_news
 
 
-# 创建全局实例
-rss_news_fetcher = RSSNewsFetcher()
-
-
+# 对外提供的接口
 def fetch_rss_news():
-    """对外提供的RSS新闻获取接口"""
-    return rss_news_fetcher.fetch_all_rss_news()
+    fetcher = RSSNewsFetcher()
+    return fetcher.fetch_all_rss_news()
