@@ -22,7 +22,6 @@ isort==6.0.1
 itsdangerous==2.2.0
 jinja2==3.1.6
 lockfile==0.12.2
--e file:///home/tim/01_cro/notifier
 markupsafe==3.0.2
 mccabe==0.7.0
 mypy-extensions==1.1.0
