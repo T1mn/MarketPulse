@@ -10,9 +10,17 @@
 
 </div>
 
-MarketPulse is a lightweight financial news analysis service built on Google Gemini AI. It automatically fetches the latest financial news, performs intelligent analysis, and delivers results with clear **investment advice**, **confidence scores**, and **source reliability** to your devices via **Bark** and **PushPlus**.
-
 > This project is completely open source. Community contributions and improvements are welcome. If you find this project helpful, please consider giving it a star ⭐️
+
+## Contributing
+
+We welcome all forms of contributions, including but not limited to:
+- Submitting issues and suggestions
+- Improving documentation
+- Submitting code improvements
+- Sharing usage experiences
+
+MarketPulse is a lightweight financial news analysis service built on Google Gemini AI. It automatically fetches the latest financial news, performs intelligent analysis, and delivers results with clear **investment advice**, **confidence scores**, and **source reliability** to your devices via **Bark** and **PushPlus**.
 
 ## Core Features
 
@@ -176,14 +184,6 @@ Main dependencies include:
 - `python-dotenv`: Environment variable management
 - `schedule`: Task scheduling
 - `requests`: HTTP requests
-
-## Contributing
-
-We welcome all forms of contributions, including but not limited to:
-- Submitting issues and suggestions
-- Improving documentation
-- Submitting code improvements
-- Sharing usage experiences
 
 ## Acknowledgments
 
