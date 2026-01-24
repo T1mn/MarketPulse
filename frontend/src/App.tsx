@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
-import './index.css'
-
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  isTyping?: boolean
-}
+import { Menu, TrendingUp } from 'lucide-react'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { Button } from '@/components/ui/button'
+import { Sidebar } from '@/components/Sidebar'
+import { ChatMessage } from '@/components/ChatMessage'
+import { ChatInput } from '@/components/ChatInput'
+import { useConversations } from '@/hooks/useConversations'
+import type { Message } from '@/types'
+import '@/index.css'
 
 const API_URL = 'http://127.0.0.1:8000/api/v1/chat'
 
@@ -17,11 +20,24 @@ const SUGGESTIONS = [
 ]
 
 function App() {
-  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const {
+    messages,
+    currentConversationId,
+    groupedConversations,
+    createConversation,
+    deleteConversation,
+    selectConversation,
+    addMessage,
+    updateMessage,
+    startNewChat,
+    setMessages,
+  } = useConversations()
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -34,23 +50,24 @@ function App() {
     }
   }, [input])
 
-  const typeText = async (text: string, index: number) => {
+  const typeText = async (text: string, messageId: string) => {
     const chars = text.split('')
     let current = ''
     for (let i = 0; i < chars.length; i++) {
       current += chars[i]
-      setMessages(prev => {
-        const updated = [...prev]
-        updated[index] = { ...updated[index], content: current, isTyping: true }
-        return updated
-      })
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === messageId ? { ...m, content: current, isTyping: true } : m
+        )
+      )
       await new Promise(r => setTimeout(r, 8))
     }
-    setMessages(prev => {
-      const updated = [...prev]
-      updated[index] = { ...updated[index], isTyping: false }
-      return updated
-    })
+    await updateMessage(messageId, { content: text, isTyping: false })
+    setMessages(prev =>
+      prev.map(m =>
+        m.id === messageId ? { ...m, isTyping: false } : m
+      )
+    )
   }
 
   const send = async (text?: string) => {
@@ -60,11 +77,32 @@ function App() {
     setInput('')
     setIsLoading(true)
 
-    const newMessages = [...messages, { role: 'user' as const, content: msg }]
-    setMessages(newMessages)
+    // Create conversation if this is the first message
+    let conversationId = currentConversationId
+    if (!conversationId) {
+      const conversation = await createConversation(msg)
+      conversationId = conversation.id
+    }
 
-    const aiIndex = newMessages.length
-    setMessages([...newMessages, { role: 'assistant', content: '', isTyping: true }])
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: msg,
+      timestamp: Date.now(),
+    }
+
+    await addMessage(userMessage)
+
+    const aiMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+      isTyping: true,
+    }
+
+    // Add AI message to local state immediately for typing effect
+    setMessages(prev => [...prev, aiMessage])
 
     try {
       const res = await fetch(API_URL, {
@@ -76,102 +114,174 @@ function App() {
       if (!res.ok) throw new Error('Request failed')
 
       const data = await res.json()
-      await typeText(data.content, aiIndex)
+      await typeText(data.content, aiMessage.id)
+
+      // Save final AI message to storage
+      aiMessage.content = data.content
+      aiMessage.isTyping = false
+      await addMessage(aiMessage)
     } catch {
-      setMessages(prev => {
-        const updated = [...prev]
-        updated[aiIndex] = {
-          role: 'assistant',
-          content: '无法连接服务器，请确保后端已启动',
-          isTyping: false
-        }
-        return updated
-      })
+      const errorContent = '无法连接服务器，请确保后端已启动'
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === aiMessage.id
+            ? { ...m, content: errorContent, isTyping: false }
+            : m
+        )
+      )
+      aiMessage.content = errorContent
+      aiMessage.isTyping = false
+      await addMessage(aiMessage)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      send()
+  const handleFeedback = async (messageId: string, feedback: 'up' | 'down') => {
+    await updateMessage(messageId, { feedback })
+  }
+
+  const handleRegenerate = async (messageId: string) => {
+    // Find the message to regenerate and the previous user message
+    const messageIndex = messages.findIndex(m => m.id === messageId)
+    if (messageIndex <= 0) return
+
+    const userMessage = messages[messageIndex - 1]
+    if (userMessage.role !== 'user') return
+
+    // Remove the old AI response
+    setMessages(prev => prev.filter(m => m.id !== messageId))
+
+    // Create new AI message
+    const aiMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+      isTyping: true,
+    }
+
+    setMessages(prev => [...prev, aiMessage])
+    setIsLoading(true)
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage.content, user_id: 'user', language: 'zh-CN' })
+      })
+
+      if (!res.ok) throw new Error('Request failed')
+
+      const data = await res.json()
+      await typeText(data.content, aiMessage.id)
+
+      aiMessage.content = data.content
+      aiMessage.isTyping = false
+      await addMessage(aiMessage)
+    } catch {
+      const errorContent = '无法连接服务器，请确保后端已启动'
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === aiMessage.id
+            ? { ...m, content: errorContent, isTyping: false }
+            : m
+        )
+      )
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
-    <div className="app">
-      {/* Messages Area */}
-      <main className="messages-container">
-        {messages.length === 0 ? (
-          <div className="welcome">
-            <div className="welcome-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M3 3v18h18" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M7 16l4-6 4 4 5-8" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <h1>MarketPulse</h1>
-            <p>智能金融助手</p>
-          </div>
-        ) : (
-          <div className="messages">
-            {messages.map((msg, i) => (
-              <div key={i} className={`message ${msg.role}`}>
-                <div className="message-content">
-                  {msg.content}
-                  {msg.isTyping && <span className="cursor" />}
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
-      </main>
+    <TooltipProvider>
+      <div className="app">
+        {/* Sidebar */}
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          conversations={groupedConversations()}
+          currentConversationId={currentConversationId}
+          onSelectConversation={selectConversation}
+          onDeleteConversation={deleteConversation}
+          onNewChat={startNewChat}
+        />
 
-      {/* Input Area */}
-      <footer className="input-area">
-        <div className="input-wrapper">
-          {messages.length === 0 && (
-            <div className="suggestions">
-              {SUGGESTIONS.map((s, i) => (
-                <button key={i} onClick={() => send(s.full)} className="suggestion">
-                  {s.text}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="input-box">
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="输入消息..."
-              rows={1}
-              disabled={isLoading}
-            />
-            <button
-              onClick={() => send()}
-              disabled={!input.trim() || isLoading}
-              className="send-btn"
-              aria-label="发送"
+        {/* Header */}
+        <header className="header">
+          <div className="header-left">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="h-9 w-9 rounded-lg"
             >
-              {isLoading ? (
-                <div className="loader" />
-              ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </button>
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">切换侧边栏</span>
+            </Button>
+            <span className="header-title">MarketPulse</span>
           </div>
+          <div className="header-right">
+            <ThemeToggle />
+          </div>
+        </header>
 
-          <p className="footer-text">MarketPulse 可能会出错，请核实重要信息</p>
+        {/* Main Container */}
+        <div className="app-container">
+          {/* Main Content */}
+          <div className="main-content">
+            {/* Messages Area */}
+            <main className="messages-container">
+              <div className="messages-wrapper">
+                {messages.length === 0 ? (
+                  <div className="welcome">
+                    <div className="welcome-icon">
+                      <TrendingUp strokeWidth={1.5} />
+                    </div>
+                    <h1>MarketPulse</h1>
+                    <p>智能金融助手</p>
+                  </div>
+                ) : (
+                  <div className="messages">
+                    {messages.map((msg) => (
+                      <ChatMessage
+                        key={msg.id}
+                        message={msg}
+                        onFeedback={handleFeedback}
+                        onRegenerate={handleRegenerate}
+                      />
+                    ))}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </div>
+            </main>
+
+            {/* Input Area */}
+            <footer className="input-area">
+              <div className="input-wrapper">
+                {messages.length === 0 && (
+                  <div className="suggestions">
+                    {SUGGESTIONS.map((s, i) => (
+                      <button key={i} onClick={() => send(s.full)} className="suggestion">
+                        {s.text}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <ChatInput
+                  value={input}
+                  onChange={setInput}
+                  onSend={() => send()}
+                  isLoading={isLoading}
+                />
+              </div>
+            </footer>
+          </div>
         </div>
-      </footer>
-    </div>
+      </div>
+    </TooltipProvider>
   )
 }
 
