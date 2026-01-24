@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { Menu, TrendingUp } from 'lucide-react'
+import { TrendingUp } from 'lucide-react'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { Button } from '@/components/ui/button'
 import { Sidebar } from '@/components/Sidebar'
 import { ChatMessage } from '@/components/ChatMessage'
 import { ChatInput } from '@/components/ChatInput'
@@ -199,7 +198,7 @@ function App() {
         {/* Sidebar */}
         <Sidebar
           isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
           conversations={groupedConversations()}
           currentConversationId={currentConversationId}
           onSelectConversation={selectConversation}
@@ -207,27 +206,13 @@ function App() {
           onNewChat={startNewChat}
         />
 
-        {/* Header */}
-        <header className="header">
-          <div className="header-left">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="h-9 w-9 rounded-lg"
-            >
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">切换侧边栏</span>
-            </Button>
-            <span className="header-title">MarketPulse</span>
-          </div>
-          <div className="header-right">
-            <ThemeToggle />
-          </div>
-        </header>
-
         {/* Main Container */}
         <div className="app-container">
+          {/* Theme Toggle - Fixed position */}
+          <div className="theme-toggle-fixed">
+            <ThemeToggle />
+          </div>
+
           {/* Main Content */}
           <div className="main-content">
             {/* Messages Area */}

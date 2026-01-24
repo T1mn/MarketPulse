@@ -120,6 +120,7 @@ body {
   display: flex;
   flex: 1;
   overflow: hidden;
+  margin-left: 56px; /* Space for collapsed sidebar */
 }
 
 .main-content {
@@ -127,6 +128,15 @@ body {
   flex-direction: column;
   flex: 1;
   min-width: 0;
+  position: relative;
+}
+
+/* Theme Toggle Fixed Position */
+.theme-toggle-fixed {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 30;
 }
 
 /* ========================================
@@ -348,9 +358,9 @@ body {
 
 .input-box {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 8px 12px;
   background: var(--secondary);
   border: 1px solid var(--border);
   border-radius: 24px;
@@ -519,6 +529,45 @@ body {
 /* ========================================
    Sidebar
    ======================================== */
+
+.sidebar-wrapper {
+  position: relative;
+  z-index: 50;
+}
+
+.sidebar-collapsed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 56px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 8px;
+  gap: 8px;
+  background-color: var(--background);
+  border-right: 1px solid var(--border);
+  z-index: 45;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.sidebar-collapsed-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.sidebar-toggle-btn {
+  width: 40px;
+  height: 40px;
+  color: var(--muted-foreground);
+}
+
+.sidebar-toggle-btn:hover {
+  color: var(--foreground);
+  background-color: var(--secondary);
+}
 
 .sidebar {
   position: fixed;

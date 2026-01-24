@@ -1,4 +1,4 @@
-import { Plus, Trash2, MessageSquare, X } from 'lucide-react'
+import { Plus, Trash2, MessageSquare, PanelLeftClose, PanelLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 
 interface SidebarProps {
   isOpen: boolean
-  onClose: () => void
+  onToggle: () => void
   conversations: { label: string; conversations: Conversation[] }[]
   currentConversationId: string | null
   onSelectConversation: (id: string) => void
@@ -20,7 +20,7 @@ interface SidebarProps {
 
 export function Sidebar({
   isOpen,
-  onClose,
+  onToggle,
   conversations,
   currentConversationId,
   onSelectConversation,
@@ -28,37 +28,79 @@ export function Sidebar({
   onNewChat,
 }: SidebarProps) {
   return (
-    <>
+    <div className="sidebar-wrapper">
+      {/* Collapsed sidebar strip */}
+      <div className={cn('sidebar-collapsed', isOpen && 'sidebar-collapsed-hidden')}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="sidebar-toggle-btn"
+              onClick={onToggle}
+            >
+              <PanelLeft className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>展开侧边栏</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="sidebar-toggle-btn"
+              onClick={onNewChat}
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>新对话</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
       {/* Overlay for mobile */}
       {isOpen && (
         <div
           className="sidebar-overlay"
-          onClick={onClose}
+          onClick={onToggle}
           aria-hidden="true"
         />
       )}
 
-      {/* Sidebar */}
+      {/* Expanded sidebar */}
       <aside className={cn('sidebar', isOpen && 'sidebar-open')}>
         <div className="sidebar-header">
-          <Button
-            variant="outline"
-            className="new-chat-btn"
-            onClick={() => {
-              onNewChat()
-              onClose()
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            新对话
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="sidebar-toggle-btn"
+                onClick={onToggle}
+              >
+                <PanelLeftClose className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>收起侧边栏</p>
+            </TooltipContent>
+          </Tooltip>
+
           <Button
             variant="ghost"
             size="icon"
-            className="sidebar-close-btn"
-            onClick={onClose}
+            className="sidebar-toggle-btn"
+            onClick={() => {
+              onNewChat()
+            }}
           >
-            <X className="h-5 w-5" />
+            <Plus className="h-5 w-5" />
           </Button>
         </div>
 
@@ -82,7 +124,6 @@ export function Sidebar({
                         )}
                         onClick={() => {
                           onSelectConversation(conv.id)
-                          onClose()
                         }}
                       >
                         <MessageSquare className="h-4 w-4 flex-shrink-0" />
@@ -112,6 +153,6 @@ export function Sidebar({
           )}
         </nav>
       </aside>
-    </>
+    </div>
   )
 }
