@@ -18,6 +18,7 @@ app_state.json
 # 开发者文件
 .idea/
 .vscode/
+.worktrees/
 dependency_links.txt
 PKG-INFO
 requires.txt
