@@ -30,6 +30,21 @@ const app = new Hono()
 app.use('*', cors())
 app.use('*', logger())
 
+// Root route
+app.get('/', (c) => {
+  return c.json({
+    name: APP_NAME,
+    version: APP_VERSION,
+    description: '企业级金融智能助手 API',
+    endpoints: {
+      health: '/health',
+      chat: '/api/v1/chat',
+      session: '/api/v1/session',
+      market: '/api/v1/market/price/:symbol',
+    },
+  })
+})
+
 // Health check
 app.get(API_ENDPOINTS.HEALTH, (c) => {
   return c.json({
