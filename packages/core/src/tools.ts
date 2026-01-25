@@ -86,31 +86,14 @@ export const searchNewsTool = tool({
   },
 })
 
-/**
- * Analyze sentiment tool
- */
-export const analyzeSentimentTool = tool({
-  description: '分析文本的市场情绪',
-  parameters: z.object({
-    text: z.string().describe('待分析的文本'),
-  }),
-  execute: async ({ text }) => {
-    // TODO: Implement actual sentiment analysis
-    return {
-      sentiment: 'neutral' as 'positive' | 'negative' | 'neutral',
-      confidence: 0.5,
-      text,
-    }
-  },
-})
+// TODO: 情感分析功能计划在后续版本中集成到 LLM prompt，而非独立工具
 
 /**
- * All available tools
+ * All available tools for AI agents
  */
 export const tools = {
   getMarketPrice: getMarketPriceTool,
   searchNews: searchNewsTool,
-  analyzeSentiment: analyzeSentimentTool,
 }
 
 export type ToolName = keyof typeof tools
