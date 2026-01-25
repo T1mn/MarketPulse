@@ -1,0 +1,15 @@
+# Bun configuration for MarketPulse monorepo
+
+[install]
+# Use exact versions for reproducibility
+exact = true
+# Use China mirror for faster downloads
+registry = "https://registry.npmmirror.com"
+
+[install.lockfile]
+# Save lockfile
+save = true
+
+[run]
+# Silent mode for scripts
+silent = false

@@ -290,6 +290,58 @@ body {
   padding-left: 0;
   padding-right: 0;
   max-width: 100%;
+  white-space: normal; /* Override pre-wrap for markdown content */
+}
+
+/* Markdown content styling */
+.message.assistant .message-content p {
+  margin: 0 0 0.5em 0;
+}
+
+.message.assistant .message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.message.assistant .message-content ul,
+.message.assistant .message-content ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.message.assistant .message-content li {
+  margin: 0.25em 0;
+}
+
+.message.assistant .message-content code {
+  background: var(--secondary);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.message.assistant .message-content pre {
+  margin: 0.5em 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.message.assistant .message-content pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.message.assistant .message-content h1,
+.message.assistant .message-content h2,
+.message.assistant .message-content h3 {
+  margin: 0.75em 0 0.5em 0;
+  font-weight: 600;
+}
+
+.message.assistant .message-content blockquote {
+  margin: 0.5em 0;
+  padding-left: 1em;
+  border-left: 3px solid var(--border);
+  color: var(--muted-foreground);
 }
 
 /* ========================================

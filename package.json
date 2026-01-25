@@ -1,0 +1,31 @@
+{
+  "name": "marketpulse",
+  "version": "2.0.0-alpha.0",
+  "private": true,
+  "description": "企业级金融智能助手 - AI-powered financial assistant",
+  "author": "MarketPulse Team",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"packages/**/*.{ts,tsx,json,md}\"",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "prettier": "^3.2.0",
+    "turbo": "^2.3.0",
+    "typescript": "^5.0.0"
+  },
+  "packageManager": "bun@1.1.38",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

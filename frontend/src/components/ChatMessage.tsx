@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Copy, Check, ThumbsUp, ThumbsDown, RefreshCw } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -39,7 +42,34 @@ export function ChatMessage({ message, onFeedback, onRegenerate }: ChatMessagePr
           <span className="loading-text">[加载中] 正在查询...</span>
         ) : (
           <>
-            {message.content}
+            {isAssistant ? (
+              <ReactMarkdown
+                components={{
+                  code({ node, className, children, ...props }) {
+                    const match = /language-(\w+)/.exec(className || '')
+                    const inline = !match && !String(children).includes('\n')
+                    return !inline && match ? (
+                      <SyntaxHighlighter
+                        style={oneDark}
+                        language={match[1]}
+                        PreTag="div"
+                        {...props}
+                      >
+                        {String(children).replace(/\n$/, '')}
+                      </SyntaxHighlighter>
+                    ) : (
+                      <code className={className} {...props}>
+                        {children}
+                      </code>
+                    )
+                  },
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            ) : (
+              message.content
+            )}
             {message.isTyping && <span className="cursor" />}
           </>
         )}

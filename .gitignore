@@ -6,6 +6,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Node.js / TypeScript
+node_modules/
+dist/
+*.tsbuildinfo
+.turbo/
+bun.lock
+
 # 日志文件
 *.log
 
@@ -19,6 +26,7 @@ app_state.json
 .idea/
 .vscode/
 .worktrees/
+.claude/
 dependency_links.txt
 PKG-INFO
 requires.txt

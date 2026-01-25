@@ -1,0 +1,18 @@
+{
+  "name": "@marketpulse/desktop",
+  "version": "2.0.0-alpha.0",
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'Desktop dev requires Tauri CLI'",
+    "build": "echo 'Desktop build requires Tauri CLI'",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist src-tauri/target"
+  },
+  "dependencies": {
+    "@marketpulse/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  }
+}

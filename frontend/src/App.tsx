@@ -50,23 +50,38 @@ function App() {
   }, [input])
 
   const typeText = async (text: string, messageId: string) => {
+    // Use requestAnimationFrame for smooth typing even when tab is not focused
     const chars = text.split('')
     let current = ''
-    for (let i = 0; i < chars.length; i++) {
-      current += chars[i]
+    let i = 0
+
+    const typeNextChunk = () => {
+      // Type multiple chars per frame for better performance
+      const charsPerFrame = document.hidden ? 10 : 3
+      for (let j = 0; j < charsPerFrame && i < chars.length; j++, i++) {
+        current += chars[i]
+      }
+
       setMessages(prev =>
         prev.map(m =>
           m.id === messageId ? { ...m, content: current, isTyping: true } : m
         )
       )
-      await new Promise(r => setTimeout(r, 8))
+
+      if (i < chars.length) {
+        requestAnimationFrame(typeNextChunk)
+      } else {
+        // Typing complete
+        updateMessage(messageId, { content: text, isTyping: false })
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === messageId ? { ...m, isTyping: false } : m
+          )
+        )
+      }
     }
-    await updateMessage(messageId, { content: text, isTyping: false })
-    setMessages(prev =>
-      prev.map(m =>
-        m.id === messageId ? { ...m, isTyping: false } : m
-      )
-    )
+
+    requestAnimationFrame(typeNextChunk)
   }
 
   const send = async (text?: string) => {
@@ -115,10 +130,9 @@ function App() {
       const data = await res.json()
       await typeText(data.content, aiMessage.id)
 
-      // Save final AI message to storage
+      // Update the message in storage (not add again)
       aiMessage.content = data.content
       aiMessage.isTyping = false
-      await addMessage(aiMessage)
     } catch {
       const errorContent = '无法连接服务器，请确保后端已启动'
       setMessages(prev =>
@@ -128,9 +142,6 @@ function App() {
             : m
         )
       )
-      aiMessage.content = errorContent
-      aiMessage.isTyping = false
-      await addMessage(aiMessage)
     } finally {
       setIsLoading(false)
     }

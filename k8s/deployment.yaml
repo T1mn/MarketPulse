@@ -1,0 +1,104 @@
+# MarketPulse Kubernetes Deployment
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: marketpulse-api
+  labels:
+    app: marketpulse
+    component: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: marketpulse
+      component: api
+  template:
+    metadata:
+      labels:
+        app: marketpulse
+        component: api
+    spec:
+      containers:
+      - name: api
+        image: marketpulse/api:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: LOG_LEVEL
+          value: "INFO"
+        envFrom:
+        - secretRef:
+            name: marketpulse-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: marketpulse-data
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: marketpulse-api
+spec:
+  type: LoadBalancer
+  selector:
+    app: marketpulse
+    component: api
+  ports:
+  - port: 80
+    targetPort: 8000
+    name: http
+
+---
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: marketpulse-api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: marketpulse-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

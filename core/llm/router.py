@@ -240,6 +240,66 @@ class LLMRouter:
             "cache_stats": self.cache.get_stats(),
         }
 
+    async def generate_with_history(
+        self,
+        conversation_history: List[Dict],
+        user_input: str,
+        system_prompt: Optional[str] = None,
+        model_preference: Optional[Literal["cost", "speed", "quality", "balanced"]] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+        **kwargs
+    ) -> LLMResponse:
+        """
+        基于对话历史生成响应（多轮对话）
+
+        Args:
+            conversation_history: 对话历史 [{"role": "user/assistant", "content": "..."}]
+            user_input: 当前用户输入
+            system_prompt: 系统提示
+            model_preference: 模型偏好
+            temperature: 温度参数
+            max_tokens: 最大 token 数
+
+        Returns:
+            LLMResponse: 响应对象
+        """
+        # 1. 构建完整 messages
+        messages = []
+
+        # 添加 system prompt
+        if system_prompt:
+            messages.append(LLMMessage(role="system", content=system_prompt))
+
+        # 添加历史对话
+        for msg in conversation_history:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if content:  # 只添加有内容的消息
+                messages.append(LLMMessage(role=role, content=content))
+
+        # 添加当前用户输入
+        messages.append(LLMMessage(role="user", content=user_input))
+
+        logger.info(f"📝 Generating with {len(messages)} messages (history: {len(conversation_history)})")
+
+        # 2. 选择最佳模型
+        provider = self._select_provider(model_preference or llm_config.routing_strategy)
+
+        # 3. 调用模型（带重试和降级）
+        response = await self._generate_with_fallback(
+            provider=provider,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs
+        )
+
+        # 4. 记录成本
+        self._track_cost(response)
+
+        return response
+
 
 # 全局路由器实例
 llm_router = LLMRouter()
