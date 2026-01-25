@@ -5,6 +5,7 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 import { getPrices } from './market'
+import { searchNews, getNews } from './news'
 
 /**
  * Get current market price tool
@@ -46,17 +47,41 @@ export const getMarketPriceTool = tool({
  * Search news tool
  */
 export const searchNewsTool = tool({
-  description: '搜索金融新闻',
+  description: '搜索金融新闻。如果不提供关键词则返回最新新闻。',
   parameters: z.object({
-    query: z.string().describe('搜索关键词'),
-    limit: z.number().optional().default(5).describe('返回结果数量'),
+    query: z.string().optional().describe('搜索关键词（可选）'),
+    limit: z.number().min(1).max(20).optional().default(5).describe('返回结果数量，默认5条'),
   }),
-  execute: async ({ query, limit }) => {
-    // TODO: Implement actual news search
-    return {
-      query,
-      results: [],
-      total: 0,
+  execute: async ({ query, limit = 5 }) => {
+    try {
+      const finnhubApiKey = process.env.FINNHUB_API_KEY
+
+      let results
+      if (query && query.trim()) {
+        results = await searchNews(query, { finnhubApiKey })
+      } else {
+        results = await getNews({ finnhubApiKey, limit })
+      }
+
+      return {
+        error: null,
+        query: query || null,
+        results: results.slice(0, limit).map(item => ({
+          title: item.title,
+          summary: item.summary,
+          source: item.source,
+          url: item.url,
+          publishedAt: new Date(item.publishedAt).toISOString(),
+        })),
+        total: results.length,
+      }
+    } catch (error) {
+      return {
+        error: `获取新闻失败: ${error instanceof Error ? error.message : '未知错误'}`,
+        query: query || null,
+        results: [],
+        total: 0,
+      }
     }
   },
 })
