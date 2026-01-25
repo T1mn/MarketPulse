@@ -17,6 +17,12 @@ import {
   getSession,
   streamChat,
   getAvailableProviders,
+  getPrice,
+  getPrices,
+  getKlines,
+  POPULAR_SYMBOLS,
+  getNews,
+  searchNews,
 } from '@marketpulse/core'
 
 // Initialize
@@ -40,7 +46,15 @@ app.get('/', (c) => {
       health: '/health',
       chat: '/api/v1/chat',
       session: '/api/v1/session',
-      market: '/api/v1/market/price/:symbol',
+      market: {
+        price: '/api/v1/market/price/:symbol',
+        prices: '/api/v1/market/prices',
+        klines: '/api/v1/market/klines/:symbol',
+      },
+      news: {
+        list: '/api/v1/news',
+        search: '/api/v1/news/search',
+      },
     },
   })
 })
@@ -56,6 +70,8 @@ app.get(API_ENDPOINTS.HEALTH, (c) => {
   })
 })
 
+// ==================== Session ====================
+
 // Create session
 app.post('/api/v1/session', (c) => {
   const session = createSession()
@@ -64,6 +80,17 @@ app.post('/api/v1/session', (c) => {
     data: session,
   })
 })
+
+// Get session
+app.get('/api/v1/session/:id', (c) => {
+  const session = getSession(c.req.param('id'))
+  if (!session) {
+    return c.json({ success: false, error: 'Session not found' }, 404)
+  }
+  return c.json({ success: true, data: session })
+})
+
+// ==================== Chat ====================
 
 // Chat endpoint with SSE streaming
 app.post(API_ENDPOINTS.CHAT, async (c) => {
@@ -105,29 +132,82 @@ app.post(API_ENDPOINTS.CHAT, async (c) => {
   })
 })
 
-// Get session
-app.get('/api/v1/session/:id', (c) => {
-  const session = getSession(c.req.param('id'))
-  if (!session) {
-    return c.json({ success: false, error: 'Session not found' }, 404)
-  }
-  return c.json({ success: true, data: session })
-})
+// ==================== Market ====================
 
-// Market price (placeholder)
+// Get single price
 app.get(`${API_ENDPOINTS.MARKET_PRICE}/:symbol`, async (c) => {
   const symbol = c.req.param('symbol')
-  // TODO: Implement actual Binance API call
-  return c.json({
-    success: true,
-    data: {
-      symbol,
-      price: 0,
-      change24h: 0,
-      timestamp: Date.now(),
-    },
-  })
+  try {
+    const price = await getPrice(symbol)
+    return c.json({ success: true, data: price })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
 })
+
+// Get multiple prices
+app.get('/api/v1/market/prices', async (c) => {
+  const symbolsParam = c.req.query('symbols')
+  const symbols = symbolsParam ? symbolsParam.split(',') : POPULAR_SYMBOLS
+
+  try {
+    const prices = await getPrices(symbols)
+    return c.json({ success: true, data: prices })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Get klines
+app.get(`${API_ENDPOINTS.MARKET_KLINES}/:symbol`, async (c) => {
+  const symbol = c.req.param('symbol')
+  const interval = c.req.query('interval') || '1h'
+  const limit = parseInt(c.req.query('limit') || '100', 10)
+
+  try {
+    const klines = await getKlines(symbol, interval, limit)
+    return c.json({ success: true, data: klines })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// ==================== News ====================
+
+// Get news
+app.get('/api/v1/news', async (c) => {
+  const limit = parseInt(c.req.query('limit') || '20', 10)
+  const config = getConfig()
+
+  try {
+    const news = await getNews({
+      finnhubApiKey: process.env.FINNHUB_API_KEY,
+      limit,
+    })
+    return c.json({ success: true, data: news })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Search news
+app.get('/api/v1/news/search', async (c) => {
+  const query = c.req.query('q')
+  if (!query) {
+    return c.json({ success: false, error: 'Query parameter "q" is required' }, 400)
+  }
+
+  try {
+    const news = await searchNews(query, {
+      finnhubApiKey: process.env.FINNHUB_API_KEY,
+    })
+    return c.json({ success: true, data: news })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// ==================== Server ====================
 
 // Start server
 export function startServer() {

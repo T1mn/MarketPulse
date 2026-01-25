@@ -3,8 +3,8 @@
   "version": "2.0.0-alpha.0",
   "type": "module",
   "scripts": {
-    "dev": "echo 'Web dev: migrate frontend/ first'",
-    "build": "echo 'Web build: migrate frontend/ first'",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
