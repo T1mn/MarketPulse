@@ -165,3 +165,44 @@ class TestBinanceWebSocketClient:
         ticker = ws_client.get_ticker("BTCUSDT")
         assert ticker is not None
         assert ticker.price_change_percent == 1.17
+
+
+class TestBinanceService:
+    """统一服务测试"""
+
+    @pytest.fixture
+    def service(self):
+        from sources.binance import BinanceService
+        return BinanceService()
+
+    def test_init(self, service):
+        assert service.rest_client is not None
+        assert service.ws_client is not None
+
+    @pytest.mark.asyncio
+    async def test_get_price_from_ws_cache(self, service):
+        """优先从 WebSocket 缓存获取价格"""
+        # 模拟 WebSocket 缓存
+        from sources.binance import CryptoPrice
+        service.ws_client._prices["BTCUSDT"] = CryptoPrice(
+            symbol="BTCUSDT",
+            price=43250.00,
+        )
+
+        price, source = await service.get_price("BTCUSDT")
+        assert price.price == 43250.00
+        assert source == "websocket"
+
+    @pytest.mark.asyncio
+    async def test_get_price_fallback_to_rest(self, service):
+        """WebSocket 无缓存时回退到 REST API"""
+        mock_price = CryptoPrice(symbol="SOLUSDT", price=95.20)
+
+        with patch.object(
+            service.rest_client, 'get_price',
+            new_callable=AsyncMock, return_value=mock_price
+        ):
+            price, source = await service.get_price("SOLUSDT")
+            assert price.price == 95.20
+            assert source == "rest"
+

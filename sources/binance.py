@@ -447,3 +447,98 @@ class BinanceWebSocketClient:
             self._task = None
 
         logger.info("[Binance] WebSocket 客户端已停止")
+
+
+class BinanceService:
+    """
+    Binance 统一服务
+
+    整合 WebSocket 和 REST API，提供统一的数据访问接口。
+    优先使用 WebSocket 缓存，无缓存时回退到 REST API。
+    """
+
+    def __init__(self):
+        self.rest_client = BinanceRestClient()
+        self.ws_client = BinanceWebSocketClient()
+
+    async def start(self) -> None:
+        """启动服务（启动 WebSocket 连接）"""
+        await self.ws_client.start()
+
+    async def stop(self) -> None:
+        """停止服务"""
+        await self.ws_client.stop()
+        await self.rest_client.close()
+
+    async def get_price(self, symbol: str) -> tuple:
+        """
+        获取价格
+
+        优先从 WebSocket 缓存获取，无缓存时调用 REST API。
+
+        Args:
+            symbol: 交易对
+
+        Returns:
+            (CryptoPrice, source) - source 为 "websocket" 或 "rest"
+        """
+        # 优先 WebSocket 缓存
+        cached = self.ws_client.get_price(symbol)
+        if cached is not None:
+            return cached, "websocket"
+
+        # 回退到 REST API
+        price = await self.rest_client.get_price(symbol)
+        return price, "rest"
+
+    async def get_24h_ticker(self, symbol: str) -> tuple:
+        """
+        获取 24h 统计
+
+        优先从 WebSocket 缓存获取。
+
+        Args:
+            symbol: 交易对
+
+        Returns:
+            (Ticker24h, source)
+        """
+        # 优先 WebSocket 缓存
+        cached = self.ws_client.get_ticker(symbol)
+        if cached is not None:
+            return cached, "websocket"
+
+        # 回退到 REST API
+        ticker = await self.rest_client.get_24h_ticker(symbol)
+        return ticker, "rest"
+
+    async def get_klines(
+        self,
+        symbol: str,
+        interval: str,
+        limit: int = 100
+    ) -> List[Kline]:
+        """
+        获取 K 线数据（仅 REST API）
+
+        Args:
+            symbol: 交易对
+            interval: K 线周期 (1m, 15m, 1h, 4h, 1d)
+            limit: 返回数量
+
+        Returns:
+            Kline 列表
+        """
+        return await self.rest_client.get_klines(symbol, interval, limit)
+
+    def get_ws_status(self) -> Dict[str, Any]:
+        """获取 WebSocket 连接状态"""
+        return {
+            "connected": self.ws_client.is_connected,
+            "symbols": self.ws_client.symbols,
+            "cached_prices": len(self.ws_client._prices),
+        }
+
+
+# 全局服务实例
+binance_service = BinanceService()
