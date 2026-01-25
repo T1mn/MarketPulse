@@ -1,7 +1,0 @@
-# 基础依赖
-python-dotenv==1.1.0
-pydantic==2.11.7
-pydantic-settings==2.6.1
-requests==2.32.4
-python-dateutil==2.9.0.post0
-pytz==2025.2

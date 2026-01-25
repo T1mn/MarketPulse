@@ -1,43 +1,34 @@
-# 环境变量文件
+# 环境变量
 .env
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
+.env.local
+.env.*.local
 
 # Node.js / TypeScript
 node_modules/
 dist/
 *.tsbuildinfo
 .turbo/
+
+# Bun
 bun.lock
 
-# 日志文件
+# 日志
 *.log
 
-# 本地数据文件
-app_state.json 
-
-# 虚拟环境
-.venv/
-
-# 开发者文件
+# 编辑器
 .idea/
 .vscode/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 本地开发
 .worktrees/
 .claude/
-dependency_links.txt
-PKG-INFO
-requires.txt
-SOURCES.txt
-top_level.txt
-market_pulse.pid
 
-finnhub_news.json
-rss_news.json
-
-cls_news.json
-cls_news.xml
-
-notatesla_news.json
+# 临时文件
+*.tmp
+*.temp
