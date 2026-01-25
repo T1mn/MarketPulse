@@ -282,6 +282,7 @@ body {
 .message.user .message-content {
   background: var(--secondary);
   border-radius: 18px 18px 4px 18px;
+  max-width: 400px; /* Fixed width for consistent line wrapping */
 }
 
 .message.assistant .message-content {
@@ -303,6 +304,18 @@ body {
   margin-left: 2px;
   vertical-align: text-bottom;
   animation: blink 0.8s infinite;
+}
+
+/* Loading Text */
+.loading-text {
+  color: var(--muted-foreground);
+  font-style: italic;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* ========================================

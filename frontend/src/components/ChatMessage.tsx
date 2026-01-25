@@ -35,8 +35,14 @@ export function ChatMessage({ message, onFeedback, onRegenerate }: ChatMessagePr
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="message-content">
-        {message.content}
-        {message.isTyping && <span className="cursor" />}
+        {message.isTyping && !message.content ? (
+          <span className="loading-text">[加载中] 正在查询...</span>
+        ) : (
+          <>
+            {message.content}
+            {message.isTyping && <span className="cursor" />}
+          </>
+        )}
       </div>
 
       {/* Action buttons - show on hover, hide during typing */}
