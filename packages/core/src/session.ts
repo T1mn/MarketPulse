@@ -7,6 +7,7 @@ import type { ChatMessage, Session, LLMProvider } from '@marketpulse/shared'
 import { generateId } from '@marketpulse/shared'
 import { getProvider, getDefaultProvider } from './providers'
 import { tools } from './tools'
+import { retrieveKnowledge } from './rag'
 
 /**
  * Session store (in-memory for now, can be replaced with persistent storage)
@@ -92,6 +93,18 @@ export async function* streamChat(
     throw new Error('No LLM provider available')
   }
 
+  // RAG: 检索相关知识
+  let knowledgeContext = ''
+  try {
+    const relevantChunks = await retrieveKnowledge(userMessage, 3)
+    if (relevantChunks.length > 0) {
+      knowledgeContext = `\n\n【相关知识】\n${relevantChunks.map(c => c.content).join('\n\n')}\n`
+    }
+  } catch (error) {
+    // RAG 失败不影响主流程
+    console.warn('[RAG] Knowledge retrieval failed:', error)
+  }
+
   // Build messages for API
   const messages = session.messages.map((m) => ({
     role: m.role as 'user' | 'assistant' | 'system',
@@ -110,8 +123,8 @@ export async function* streamChat(
 
 当用户询问价格、行情时，主动调用 getMarketPrice 工具获取真实数据。
 当用户询问新闻、资讯时，主动调用 searchNews 工具获取最新信息。
-
-请用中文回答，并基于工具返回的真实数据进行分析。`,
+${knowledgeContext}
+请用中文回答，结合知识库信息和工具返回的真实数据进行分析。`,
     tools,
     maxSteps: 5, // 允许多轮工具调用
   })
