@@ -126,3 +126,42 @@ class TestBinanceRestClient:
 
             # 应该只返回前 2 条完整的
             assert len(klines) == 2
+
+
+class TestBinanceWebSocketClient:
+    """WebSocket 客户端测试"""
+
+    @pytest.fixture
+    def ws_client(self):
+        from sources.binance import BinanceWebSocketClient
+        return BinanceWebSocketClient(symbols=["BTCUSDT", "ETHUSDT"])
+
+    def test_init(self, ws_client):
+        assert ws_client.symbols == ["BTCUSDT", "ETHUSDT"]
+        assert ws_client.is_connected is False
+
+    def test_get_price_not_connected(self, ws_client):
+        price = ws_client.get_price("BTCUSDT")
+        assert price is None
+
+    def test_parse_ticker_message(self, ws_client):
+        message = {
+            "e": "24hrTicker",
+            "s": "BTCUSDT",
+            "c": "43250.00",
+            "P": "1.17",
+            "h": "43800.00",
+            "l": "42500.00",
+            "v": "12345.67",
+            "q": "534567890.12",
+        }
+
+        ws_client._handle_ticker_message(message)
+
+        price = ws_client.get_price("BTCUSDT")
+        assert price is not None
+        assert price.price == 43250.00
+
+        ticker = ws_client.get_ticker("BTCUSDT")
+        assert ticker is not None
+        assert ticker.price_change_percent == 1.17

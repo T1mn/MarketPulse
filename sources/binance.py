@@ -318,3 +318,132 @@ class BinanceRestClient:
         """关闭客户端"""
         if self._client and not self._client.is_closed:
             await self._client.aclose()
+
+
+import json
+import websockets
+
+
+class BinanceWebSocketClient:
+    """
+    Binance WebSocket 客户端
+
+    服务启动时自动连接，订阅主流币种实时价格。
+    """
+
+    def __init__(self, symbols: Optional[List[str]] = None):
+        self.symbols = symbols or settings.BINANCE_WS_SYMBOLS
+        self._prices: Dict[str, CryptoPrice] = {}
+        self._tickers: Dict[str, Ticker24h] = {}
+        self._ws = None
+        self._running = False
+        self._task: Optional[asyncio.Task] = None
+
+    @property
+    def is_connected(self) -> bool:
+        """是否已连接"""
+        return self._ws is not None and self._running
+
+    def get_price(self, symbol: str) -> Optional[CryptoPrice]:
+        """获取缓存的实时价格"""
+        return self._prices.get(symbol)
+
+    def get_ticker(self, symbol: str) -> Optional[Ticker24h]:
+        """获取缓存的 24h 统计"""
+        return self._tickers.get(symbol)
+
+    def get_all_prices(self) -> Dict[str, CryptoPrice]:
+        """获取所有缓存的价格"""
+        return self._prices.copy()
+
+    def get_all_tickers(self) -> Dict[str, Ticker24h]:
+        """获取所有缓存的统计"""
+        return self._tickers.copy()
+
+    def _handle_ticker_message(self, message: Dict) -> None:
+        """处理 24h ticker 消息"""
+        symbol = message.get("s")
+        if not symbol:
+            return
+
+        # 更新价格
+        self._prices[symbol] = CryptoPrice(
+            symbol=symbol,
+            price=float(message.get("c", 0)),
+        )
+
+        # 更新 24h 统计
+        self._tickers[symbol] = Ticker24h(
+            symbol=symbol,
+            price_change=float(message.get("p", 0)),
+            price_change_percent=float(message.get("P", 0)),
+            last_price=float(message.get("c", 0)),
+            high_price=float(message.get("h", 0)),
+            low_price=float(message.get("l", 0)),
+            volume=float(message.get("v", 0)),
+            quote_volume=float(message.get("q", 0)),
+        )
+
+    async def _connect(self) -> None:
+        """连接 WebSocket"""
+        # 构建订阅流
+        streams = [f"{s.lower()}@ticker" for s in self.symbols]
+        stream_path = "/".join(streams)
+        url = f"{BINANCE_WS_BASE_URL}/{stream_path}"
+
+        logger.info(f"[Binance] WebSocket 连接中: {self.symbols}")
+
+        while self._running:
+            try:
+                async with websockets.connect(url) as ws:
+                    self._ws = ws
+                    logger.info(f"[Binance] WebSocket 已连接，订阅: {', '.join(self.symbols)}")
+
+                    async for message in ws:
+                        if not self._running:
+                            break
+
+                        try:
+                            data = json.loads(message)
+                            self._handle_ticker_message(data)
+                        except json.JSONDecodeError:
+                            logger.warning("[Binance] 无法解析 WebSocket 消息")
+
+            except websockets.ConnectionClosed:
+                logger.warning("[Binance] WebSocket 断开连接")
+            except Exception as e:
+                logger.error(f"[Binance] WebSocket 错误: {e}")
+
+            self._ws = None
+
+            if self._running:
+                delay = settings.BINANCE_WS_RECONNECT_DELAY
+                logger.info(f"[Binance] {delay} 秒后重连...")
+                await asyncio.sleep(delay)
+
+    async def start(self) -> None:
+        """启动 WebSocket 连接"""
+        if self._running:
+            return
+
+        self._running = True
+        self._task = asyncio.create_task(self._connect())
+        logger.info("[Binance] WebSocket 客户端已启动")
+
+    async def stop(self) -> None:
+        """停止 WebSocket 连接"""
+        self._running = False
+
+        if self._ws:
+            await self._ws.close()
+            self._ws = None
+
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+            self._task = None
+
+        logger.info("[Binance] WebSocket 客户端已停止")
