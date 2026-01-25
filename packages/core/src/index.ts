@@ -1,6 +1,6 @@
 /**
  * @marketpulse/core
- * 核心业务逻辑：Session、Provider、Tools、Market
+ * 核心业务逻辑：Session、Provider、Tools、Market、RAG
  */
 
 // Providers
@@ -20,3 +20,9 @@ export * from './market'
 
 // News
 export * from './news'
+
+// RAG
+export * from './rag'
+
+// Embedding
+export * from './embedding'
