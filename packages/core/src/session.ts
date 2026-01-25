@@ -6,6 +6,7 @@ import { streamText } from 'ai'
 import type { ChatMessage, Session, LLMProvider } from '@marketpulse/shared'
 import { generateId } from '@marketpulse/shared'
 import { getProvider, getDefaultProvider } from './providers'
+import { tools } from './tools'
 
 /**
  * Session store (in-memory for now, can be replaced with persistent storage)
@@ -97,11 +98,22 @@ export async function* streamChat(
     content: m.content,
   }))
 
-  // Stream response
+  // Stream response with tools
   const { textStream } = await streamText({
     model: provider.client(provider.model),
     messages,
-    system: '你是 MarketPulse 金融智能助手，专注于提供专业的金融市场分析和投资建议。请用中文回答。',
+    system: `你是 MarketPulse 金融智能助手，专注于提供专业的金融市场分析和投资建议。
+
+你可以使用以下工具获取实时数据：
+- getMarketPrice: 获取加密货币实时价格
+- searchNews: 搜索金融新闻
+
+当用户询问价格、行情时，主动调用 getMarketPrice 工具获取真实数据。
+当用户询问新闻、资讯时，主动调用 searchNews 工具获取最新信息。
+
+请用中文回答，并基于工具返回的真实数据进行分析。`,
+    tools,
+    maxSteps: 5, // 允许多轮工具调用
   })
 
   let fullResponse = ''
