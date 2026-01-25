@@ -8,6 +8,8 @@ import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 import { streamSSE } from 'hono/streaming'
 
+import * as path from 'path'
+
 import { APP_NAME, APP_VERSION, API_ENDPOINTS } from '@marketpulse/shared'
 import {
   getConfig,
@@ -23,11 +25,36 @@ import {
   POPULAR_SYMBOLS,
   getNews,
   searchNews,
+  initRAG,
+  loadKnowledgeBase,
+  getRAGStats,
 } from '@marketpulse/core'
 
 // Initialize
 loadConfig()
-initProviders()
+
+// Async initialization for RAG
+async function initialize() {
+  // Initialize LLM providers
+  initProviders()
+
+  // Initialize RAG
+  try {
+    await initRAG()
+
+    // Load knowledge base
+    const knowledgeDir = path.join(import.meta.dir, '../../core/data/knowledge')
+    await loadKnowledgeBase(knowledgeDir)
+
+    const stats = await getRAGStats()
+    console.log(`[Server] RAG initialized with ${stats.count} knowledge chunks`)
+  } catch (error) {
+    console.warn('[Server] RAG initialization failed, continuing without RAG:', error)
+  }
+}
+
+// Execute initialization
+initialize()
 
 // Create app
 const app = new Hono()
@@ -54,6 +81,9 @@ app.get('/', (c) => {
       news: {
         list: '/api/v1/news',
         search: '/api/v1/news/search',
+      },
+      rag: {
+        stats: '/api/v1/rag/stats',
       },
     },
   })
@@ -204,6 +234,24 @@ app.get('/api/v1/news/search', async (c) => {
     return c.json({ success: true, data: news })
   } catch (error) {
     return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// ==================== RAG ====================
+
+// RAG stats endpoint
+app.get('/api/v1/rag/stats', async (c) => {
+  try {
+    const stats = await getRAGStats()
+    return c.json({
+      success: true,
+      data: stats,
+    })
+  } catch (error) {
+    return c.json({
+      success: false,
+      error: 'RAG not initialized',
+    }, 500)
   }
 })
 
