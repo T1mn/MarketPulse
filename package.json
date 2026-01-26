@@ -10,7 +10,11 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "concurrently -n chroma,server -c blue,green \"bun run dev:chroma\" \"bun run dev:server\"",
+    "dev:chroma": "chroma run --path ./.chroma",
+    "dev:server": "bun run packages/server/src/index.ts",
+    "dev:web": "cd packages/web && bun run dev",
+    "dev:all": "concurrently -n chroma,server,web -c blue,green,yellow \"bun run dev:chroma\" \"bun run dev:server\" \"bun run dev:web\"",
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
@@ -20,6 +24,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "concurrently": "9.2.1",
     "prettier": "^3.2.0",
     "turbo": "^2.3.0",
     "typescript": "^5.0.0"

@@ -61,15 +61,22 @@ bun install --registry=https://registry.npmmirror.com
 # 构建
 bun run build
 
-# 启动 ChromaDB（RAG 需要，新终端）
-chroma run --path ./.chroma
+# 启动开发环境（自动启动 ChromaDB + Server）
+bun run dev
 
-# 启动后端
-bun run packages/server/src/index.ts
-
-# 启动前端 (另一个终端)
-cd packages/web && bun run dev
+# 或启动全部（ChromaDB + Server + Web）
+bun run dev:all
 ```
+
+### 可用命令
+
+| 命令 | 说明 |
+|------|------|
+| `bun run dev` | 启动 ChromaDB + Server |
+| `bun run dev:all` | 启动 ChromaDB + Server + Web |
+| `bun run dev:server` | 仅启动 Server |
+| `bun run dev:web` | 仅启动 Web 前端 |
+| `bun run build` | 构建所有包 |
 
 ## 网络与镜像配置
 
