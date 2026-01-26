@@ -20,10 +20,10 @@
   "dependencies": {
     "@ai-sdk/deepseek": "^1.0.0",
     "@ai-sdk/openai": "^1.0.0",
-    "@chroma-core/default-embed": "0.1.9",
     "@marketpulse/shared": "workspace:*",
     "ai": "^4.0.0",
     "chromadb": "3.2.2",
+    "ollama-ai-provider": "1.2.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
