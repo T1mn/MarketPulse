@@ -4,7 +4,7 @@
  */
 
 import { ChromaClient, Collection } from 'chromadb'
-import { getEmbeddingFunction } from './embedding'
+import { generateEmbedding, generateEmbeddings, isEmbeddingAvailable } from './embedding'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -20,14 +20,15 @@ let collection: Collection | null = null
 export async function initRAG(): Promise<void> {
   if (client && collection) return
 
+  if (!isEmbeddingAvailable()) {
+    throw new Error('OPENAI_API_KEY is required for RAG embedding generation')
+  }
+
   client = new ChromaClient({ path: CHROMA_HOST })
 
-  const embeddingFunction = getEmbeddingFunction()
-
-  // 获取或创建集合
+  // 获取或创建集合（不使用 embeddingFunction，我们自己生成 embedding）
   collection = await client.getOrCreateCollection({
     name: COLLECTION_NAME,
-    embeddingFunction,
     metadata: { description: 'MarketPulse 金融知识库' },
   })
 
@@ -93,6 +94,13 @@ export async function loadKnowledgeBase(knowledgeDir: string): Promise<number> {
   await initRAG()
   if (!collection) throw new Error('Collection not initialized')
 
+  // 检查是否已有数据，避免重复加载
+  const existingCount = await collection.count()
+  if (existingCount > 0) {
+    console.log(`[RAG] Collection already has ${existingCount} chunks, skipping load`)
+    return existingCount
+  }
+
   const files = fs.readdirSync(knowledgeDir).filter(f => f.endsWith('.md'))
   let totalChunks = 0
 
@@ -102,9 +110,13 @@ export async function loadKnowledgeBase(knowledgeDir: string): Promise<number> {
     const chunks = parseMarkdownToChunks(filePath, category)
 
     if (chunks.length > 0) {
+      // 生成 embeddings
+      const embeddings = await generateEmbeddings(chunks.map(c => c.content))
+
       await collection.add({
         ids: chunks.map(c => c.id),
         documents: chunks.map(c => c.content),
+        embeddings: embeddings,
         metadatas: chunks.map(c => c.metadata),
       })
       totalChunks += chunks.length
@@ -126,8 +138,11 @@ export async function retrieveKnowledge(
   await initRAG()
   if (!collection) throw new Error('Collection not initialized')
 
+  // 生成查询的 embedding
+  const queryEmbedding = await generateEmbedding(query)
+
   const results = await collection.query({
-    queryTexts: [query],
+    queryEmbeddings: [queryEmbedding],
     nResults: topK,
   })
 
