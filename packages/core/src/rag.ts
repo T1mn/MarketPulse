@@ -3,7 +3,7 @@
  * 使用 ChromaDB 存储和检索金融知识
  */
 
-import { ChromaClient, Collection } from 'chromadb'
+import { ChromaClient, Collection, IEmbeddingFunction } from 'chromadb'
 import { generateEmbedding, generateEmbeddings, isEmbeddingAvailable } from './embedding'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -15,20 +15,32 @@ let client: ChromaClient | null = null
 let collection: Collection | null = null
 
 /**
+ * 自定义 Embedding Function - 使用我们自己的 embedding 服务
+ */
+class CustomEmbeddingFunction implements IEmbeddingFunction {
+  async generate(texts: string[]): Promise<number[][]> {
+    return generateEmbeddings(texts)
+  }
+}
+
+/**
  * 初始化 ChromaDB 客户端
  */
 export async function initRAG(): Promise<void> {
   if (client && collection) return
 
   if (!isEmbeddingAvailable()) {
-    throw new Error('OPENAI_API_KEY is required for RAG embedding generation')
+    throw new Error('No embedding provider available. Set OLLAMA_BASE_URL or OPENAI_API_KEY.')
   }
 
   client = new ChromaClient({ path: CHROMA_HOST })
 
-  // 获取或创建集合（不使用 embeddingFunction，我们自己生成 embedding）
+  // 使用自定义 embedding function
+  const embeddingFunction = new CustomEmbeddingFunction()
+
   collection = await client.getOrCreateCollection({
     name: COLLECTION_NAME,
+    embeddingFunction,
     metadata: { description: 'MarketPulse 金融知识库' },
   })
 
@@ -138,11 +150,9 @@ export async function retrieveKnowledge(
   await initRAG()
   if (!collection) throw new Error('Collection not initialized')
 
-  // 生成查询的 embedding
-  const queryEmbedding = await generateEmbedding(query)
-
+  // 使用 queryTexts，ChromaDB 会自动调用我们的 CustomEmbeddingFunction
   const results = await collection.query({
-    queryEmbeddings: [queryEmbedding],
+    queryTexts: [query],
     nResults: topK,
   })
 
