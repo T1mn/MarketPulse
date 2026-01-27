@@ -38,5 +38,8 @@ Thumbs.db
 *.db-wal
 *.db-shm
 
+# ChromaDB 数据目录
+.chroma/
+
 # 本地计划文档
 docs/plans/
