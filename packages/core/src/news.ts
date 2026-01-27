@@ -1,10 +1,17 @@
 /**
- * News Aggregation Service
- * 聚合金融新闻数据
+ * News Service
+ * 新闻查询服务（从本地 SQLite 读取）
  */
 
+import {
+  getLatestNews,
+  searchNewsInDB,
+  formatToBeijingTime,
+  type NewsRecord,
+} from './news-store'
+
 /**
- * 新闻条目
+ * 新闻条目（对外接口）
  */
 export interface NewsItem {
   id: string
@@ -12,139 +19,36 @@ export interface NewsItem {
   summary: string
   source: string
   url: string
-  publishedAt: number
+  publishedAt: string // 北京时间 ISO 字符串
   category?: string
 }
 
 /**
- * RSS Feed 源
+ * 将内部记录转换为对外接口
  */
-const RSS_FEEDS = [
-  {
-    name: 'CoinDesk',
-    url: 'https://www.coindesk.com/arc/outboundfeeds/rss/',
-    category: 'crypto',
-  },
-  {
-    name: 'Cointelegraph',
-    url: 'https://cointelegraph.com/rss',
-    category: 'crypto',
-  },
-]
-
-/**
- * 解析 RSS Feed
- */
-async function parseRSSFeed(feedUrl: string, source: string, category: string): Promise<NewsItem[]> {
-  try {
-    const response = await fetch(feedUrl)
-    if (!response.ok) {
-      console.error(`Failed to fetch RSS feed from ${source}`)
-      return []
-    }
-
-    const xml = await response.text()
-
-    // 简单的 XML 解析（不依赖外部库）
-    const items: NewsItem[] = []
-    const itemMatches = xml.match(/<item>([\s\S]*?)<\/item>/g) || []
-
-    for (const itemXml of itemMatches.slice(0, 10)) {
-      const title = itemXml.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1]
-        || itemXml.match(/<title>(.*?)<\/title>/)?.[1]
-        || ''
-
-      const link = itemXml.match(/<link>(.*?)<\/link>/)?.[1] || ''
-
-      const description = itemXml.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/)?.[1]
-        || itemXml.match(/<description>(.*?)<\/description>/)?.[1]
-        || ''
-
-      const pubDate = itemXml.match(/<pubDate>(.*?)<\/pubDate>/)?.[1]
-
-      if (title && link) {
-        items.push({
-          id: Buffer.from(link).toString('base64').slice(0, 16),
-          title: title.trim(),
-          summary: description.replace(/<[^>]*>/g, '').trim().slice(0, 200),
-          source,
-          url: link,
-          publishedAt: pubDate ? new Date(pubDate).getTime() : Date.now(),
-          category,
-        })
-      }
-    }
-
-    return items
-  } catch (error) {
-    console.error(`Error parsing RSS feed from ${source}:`, error)
-    return []
+function toNewsItem(record: NewsRecord): NewsItem {
+  return {
+    id: record.id,
+    title: record.title,
+    summary: record.summary || '',
+    source: record.source,
+    url: record.url,
+    publishedAt: formatToBeijingTime(record.publishedAt),
+    category: record.category || undefined,
   }
 }
 
 /**
- * 从 Finnhub 获取新闻（需要 API key）
- */
-async function fetchFinnhubNews(apiKey: string): Promise<NewsItem[]> {
-  if (!apiKey) return []
-
-  try {
-    const response = await fetch(
-      `https://finnhub.io/api/v1/news?category=crypto&token=${apiKey}`
-    )
-
-    if (!response.ok) return []
-
-    const data: any[] = await response.json()
-
-    return data.slice(0, 10).map((item) => ({
-      id: String(item.id),
-      title: item.headline,
-      summary: item.summary?.slice(0, 200) || '',
-      source: item.source,
-      url: item.url,
-      publishedAt: item.datetime * 1000,
-      category: 'crypto',
-    }))
-  } catch (error) {
-    console.error('Error fetching Finnhub news:', error)
-    return []
-  }
-}
-
-/**
- * 获取所有新闻
+ * 获取最新新闻
  */
 export async function getNews(options?: {
-  finnhubApiKey?: string
   limit?: number
+  category?: string
 }): Promise<NewsItem[]> {
-  const { finnhubApiKey, limit = 20 } = options || {}
+  const { limit = 20, category } = options || {}
 
-  // 并行获取所有源
-  const promises: Promise<NewsItem[]>[] = [
-    ...RSS_FEEDS.map((feed) => parseRSSFeed(feed.url, feed.name, feed.category)),
-  ]
-
-  if (finnhubApiKey) {
-    promises.push(fetchFinnhubNews(finnhubApiKey))
-  }
-
-  const results = await Promise.all(promises)
-  const allNews = results.flat()
-
-  // 按时间排序，去重
-  const seen = new Set<string>()
-  const uniqueNews = allNews
-    .sort((a, b) => b.publishedAt - a.publishedAt)
-    .filter((item) => {
-      if (seen.has(item.title)) return false
-      seen.add(item.title)
-      return true
-    })
-    .slice(0, limit)
-
-  return uniqueNews
+  const records = getLatestNews(limit, category)
+  return records.map(toNewsItem)
 }
 
 /**
@@ -152,14 +56,51 @@ export async function getNews(options?: {
  */
 export async function searchNews(
   query: string,
-  options?: { finnhubApiKey?: string }
+  options?: { limit?: number }
 ): Promise<NewsItem[]> {
-  const news = await getNews(options)
-  const lowerQuery = query.toLowerCase()
+  const { limit = 20 } = options || {}
 
-  return news.filter(
-    (item) =>
-      item.title.toLowerCase().includes(lowerQuery) ||
-      item.summary.toLowerCase().includes(lowerQuery)
-  )
+  if (!query || !query.trim()) {
+    return getNews({ limit })
+  }
+
+  // 中英文关键词映射（用于扩展搜索）
+  const keywordMap: Record<string, string[]> = {
+    '比特币': ['bitcoin', 'btc'],
+    '以太坊': ['ethereum', 'eth'],
+    '加密货币': ['crypto', 'cryptocurrency'],
+    '区块链': ['blockchain'],
+    '币安': ['binance'],
+    '交易所': ['exchange'],
+    '苹果': ['apple', 'aapl'],
+    '特斯拉': ['tesla', 'tsla'],
+    '微软': ['microsoft', 'msft'],
+    '谷歌': ['google', 'googl'],
+    '亚马逊': ['amazon', 'amzn'],
+    '英伟达': ['nvidia', 'nvda'],
+  }
+
+  // 构建 FTS5 查询
+  const keywords = query.toLowerCase().split(/\s+/).filter(k => k.length > 0)
+  const expandedKeywords = new Set<string>()
+
+  for (const keyword of keywords) {
+    expandedKeywords.add(keyword)
+    // 如果是中文关键词，添加对应的英文
+    if (keywordMap[keyword]) {
+      keywordMap[keyword].forEach(k => expandedKeywords.add(k))
+    }
+  }
+
+  // FTS5 OR 查询
+  const ftsQuery = Array.from(expandedKeywords).join(' OR ')
+
+  try {
+    const records = searchNewsInDB(ftsQuery, limit)
+    return records.map(toNewsItem)
+  } catch (error) {
+    // FTS5 查询失败时，回退到简单查询
+    console.error('[News] FTS5 search error, falling back to latest:', error)
+    return getNews({ limit })
+  }
 }

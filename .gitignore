@@ -32,3 +32,11 @@ Thumbs.db
 # 临时文件
 *.tmp
 *.temp
+
+# 数据库
+*.db
+*.db-wal
+*.db-shm
+
+# 本地计划文档
+docs/plans/

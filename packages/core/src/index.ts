@@ -20,6 +20,8 @@ export * from './market'
 
 // News
 export * from './news'
+export * from './news-store'
+export * from './rss-fetcher'
 
 // RAG
 export * from './rag'

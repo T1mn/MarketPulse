@@ -47,20 +47,18 @@ export const getMarketPriceTool = tool({
  * Search news tool
  */
 export const searchNewsTool = tool({
-  description: '搜索金融新闻。如果不提供关键词则返回最新新闻。',
+  description: '搜索和获取最新金融新闻、加密货币资讯、市场动态。当用户询问新闻、资讯、最新消息、市场动态、发生了什么时调用此工具。',
   parameters: z.object({
-    query: z.string().optional().describe('搜索关键词（可选）'),
+    query: z.string().optional().describe('搜索关键词，如 "比特币"、"以太坊"、"crypto"（可选，不提供则返回最新新闻）'),
     limit: z.number().min(1).max(20).optional().default(5).describe('返回结果数量，默认5条'),
   }),
   execute: async ({ query, limit = 5 }) => {
     try {
-      const finnhubApiKey = process.env.FINNHUB_API_KEY
-
       let results
       if (query && query.trim()) {
-        results = await searchNews(query, { finnhubApiKey })
+        results = await searchNews(query, { limit })
       } else {
-        results = await getNews({ finnhubApiKey, limit })
+        results = await getNews({ limit })
       }
 
       return {
@@ -71,7 +69,8 @@ export const searchNewsTool = tool({
           summary: item.summary,
           source: item.source,
           url: item.url,
-          publishedAt: new Date(item.publishedAt).toISOString(),
+          publishedAt: item.publishedAt,
+          category: item.category,
         })),
         total: results.length,
       }
@@ -85,8 +84,6 @@ export const searchNewsTool = tool({
     }
   },
 })
-
-// TODO: 情感分析功能计划在后续版本中集成到 LLM prompt，而非独立工具
 
 /**
  * All available tools for AI agents

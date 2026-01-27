@@ -28,15 +28,35 @@ import {
   initRAG,
   loadKnowledgeBase,
   getRAGStats,
+  initNewsDB,
+  getNewsStats,
+  fetchAllRSS,
+  startRSSScheduler,
+  getRSSSources,
 } from '@marketpulse/core'
 
 // Initialize
 loadConfig()
 
-// Async initialization for RAG
+// Async initialization for RAG and RSS
 async function initialize() {
   // Initialize LLM providers
   initProviders()
+
+  // Initialize News SQLite database
+  try {
+    initNewsDB()
+    console.log('[Server] News database initialized')
+
+    // Initial RSS fetch
+    const result = await fetchAllRSS()
+    console.log(`[Server] Initial RSS fetch: ${result.total} parsed, ${result.inserted} new`)
+
+    // Start RSS scheduler
+    startRSSScheduler()
+  } catch (error) {
+    console.error('[Server] News initialization failed:', error)
+  }
 
   // Initialize RAG
   try {
@@ -81,6 +101,8 @@ app.get('/', (c) => {
       news: {
         list: '/api/v1/news',
         search: '/api/v1/news/search',
+        stats: '/api/v1/news/stats',
+        refresh: '/api/v1/news/refresh',
       },
       rag: {
         stats: '/api/v1/rag/stats',
@@ -143,11 +165,23 @@ app.post(API_ENDPOINTS.CHAT, async (c) => {
   // Stream response
   return streamSSE(c, async (stream) => {
     try {
-      for await (const text of streamChat(sessionId, message)) {
-        await stream.writeSSE({
-          event: 'message',
-          data: JSON.stringify({ text }),
-        })
+      for await (const event of streamChat(sessionId, message)) {
+        if (event.type === 'text') {
+          await stream.writeSSE({
+            event: 'message',
+            data: JSON.stringify({ text: event.content }),
+          })
+        } else if (event.type === 'tool-call') {
+          await stream.writeSSE({
+            event: 'tool-call',
+            data: JSON.stringify({ toolName: event.toolName, args: event.args }),
+          })
+        } else if (event.type === 'tool-result') {
+          await stream.writeSSE({
+            event: 'tool-result',
+            data: JSON.stringify({ toolName: event.toolName, result: event.result }),
+          })
+        }
       }
       await stream.writeSSE({
         event: 'done',
@@ -207,13 +241,10 @@ app.get(`${API_ENDPOINTS.MARKET_KLINES}/:symbol`, async (c) => {
 // Get news
 app.get('/api/v1/news', async (c) => {
   const limit = parseInt(c.req.query('limit') || '20', 10)
-  const config = getConfig()
+  const category = c.req.query('category')
 
   try {
-    const news = await getNews({
-      finnhubApiKey: process.env.FINNHUB_API_KEY,
-      limit,
-    })
+    const news = await getNews({ limit, category })
     return c.json({ success: true, data: news })
   } catch (error) {
     return c.json({ success: false, error: String(error) }, 500)
@@ -223,15 +254,50 @@ app.get('/api/v1/news', async (c) => {
 // Search news
 app.get('/api/v1/news/search', async (c) => {
   const query = c.req.query('q')
+  const limit = parseInt(c.req.query('limit') || '20', 10)
+
   if (!query) {
     return c.json({ success: false, error: 'Query parameter "q" is required' }, 400)
   }
 
   try {
-    const news = await searchNews(query, {
-      finnhubApiKey: process.env.FINNHUB_API_KEY,
-    })
+    const news = await searchNews(query, { limit })
     return c.json({ success: true, data: news })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// News stats
+app.get('/api/v1/news/stats', (c) => {
+  try {
+    const stats = getNewsStats()
+    const sources = getRSSSources()
+    return c.json({
+      success: true,
+      data: {
+        ...stats,
+        sources: sources.map((s) => ({ name: s.name, category: s.category })),
+        fetchInterval: parseInt(process.env.RSS_FETCH_INTERVAL || '15', 10),
+        retentionDays: parseInt(process.env.RSS_RETENTION_DAYS || '30', 10),
+      },
+    })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Manual refresh
+app.post('/api/v1/news/refresh', async (c) => {
+  try {
+    const result = await fetchAllRSS()
+    return c.json({
+      success: true,
+      data: {
+        total: result.total,
+        inserted: result.inserted,
+      },
+    })
   } catch (error) {
     return c.json({ success: false, error: String(error) }, 500)
   }
