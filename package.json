@@ -12,7 +12,7 @@
   "scripts": {
     "dev": "concurrently -n chroma,server -c blue,green \"bun run dev:chroma\" \"bun run dev:server\"",
     "dev:chroma": "chroma run --path ./.chroma",
-    "dev:server": "bun run packages/server/src/index.ts",
+    "dev:server": "bash -c 'echo \"[server] Waiting for ChromaDB...\"; until curl -s http://localhost:8000/api/v1 > /dev/null 2>&1; do sleep 1; done; echo \"[server] ChromaDB ready!\"' && bun run packages/server/src/index.ts",
     "dev:web": "cd packages/web && bun run dev",
     "dev:all": "concurrently -n chroma,server,web -c blue,green,yellow \"bun run dev:chroma\" \"bun run dev:server\" \"bun run dev:web\"",
     "build": "turbo run build",

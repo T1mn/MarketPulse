@@ -73,12 +73,20 @@ export function addMessage(
 }
 
 /**
+ * Chat stream event types
+ */
+export type ChatStreamEvent =
+  | { type: 'text'; content: string }
+  | { type: 'tool-call'; toolName: string; args: unknown }
+  | { type: 'tool-result'; toolName: string; result: unknown }
+
+/**
  * Stream chat completion
  */
 export async function* streamChat(
   sessionId: string,
   userMessage: string
-): AsyncGenerator<string, void, unknown> {
+): AsyncGenerator<ChatStreamEvent, void, unknown> {
   const session = sessions.get(sessionId)
   if (!session) {
     throw new Error(`Session not found: ${sessionId}`)
@@ -112,17 +120,19 @@ export async function* streamChat(
   }))
 
   // Stream response with tools
-  const { textStream } = await streamText({
+  const { fullStream } = await streamText({
     model: provider.client(provider.model),
     messages,
     system: `你是 MarketPulse 金融智能助手，专注于提供专业的金融市场分析和投资建议。
 
 你可以使用以下工具获取实时数据：
-- getMarketPrice: 获取加密货币实时价格
-- searchNews: 搜索金融新闻
+- getMarketPrice: 获取加密货币实时价格（当用户问价格、行情、多少钱时调用）
+- searchNews: 获取金融新闻资讯（当用户问新闻、资讯、最新消息、发生什么、有什么动态时调用）
 
-当用户询问价格、行情时，主动调用 getMarketPrice 工具获取真实数据。
-当用户询问新闻、资讯时，主动调用 searchNews 工具获取最新信息。
+【重要】工具调用规则：
+1. 用户询问价格、行情、多少钱 → 调用 getMarketPrice
+2. 用户询问新闻、资讯、消息、动态、发生了什么 → 调用 searchNews
+3. 不要猜测数据，必须通过工具获取真实信息
 ${knowledgeContext}
 请用中文回答，结合知识库信息和工具返回的真实数据进行分析。`,
     tools,
@@ -131,9 +141,23 @@ ${knowledgeContext}
 
   let fullResponse = ''
 
-  for await (const text of textStream) {
-    fullResponse += text
-    yield text
+  for await (const part of fullStream) {
+    switch (part.type) {
+      case 'text-delta':
+        fullResponse += part.textDelta
+        yield { type: 'text', content: part.textDelta }
+        break
+      case 'tool-call':
+        console.log(`[Tool] 🔧 Calling: ${part.toolName}`)
+        console.log(`[Tool]    Args: ${JSON.stringify(part.args)}`)
+        yield { type: 'tool-call', toolName: part.toolName, args: part.args }
+        break
+      case 'tool-result':
+        console.log(`[Tool] ✅ Result: ${part.toolName}`)
+        console.log(`[Tool]    Output: ${JSON.stringify(part.result).slice(0, 200)}${JSON.stringify(part.result).length > 200 ? '...' : ''}`)
+        yield { type: 'tool-result', toolName: part.toolName, result: part.result }
+        break
+    }
   }
 
   // Add assistant message
