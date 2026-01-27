@@ -1,16 +1,58 @@
+import { Copy, Check, ThumbsUp, ThumbsDown, RefreshCw, Wrench, Loader2, ChevronRight, Sparkles } from 'lucide-react'
 import { useState } from 'react'
-import { Copy, Check, ThumbsUp, ThumbsDown, RefreshCw } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { Button } from '@/components/ui/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import type { Message } from '@/types'
+
+// Tool name mapping for display
+const TOOL_DISPLAY_NAMES: Record<string, string> = {
+  getMarketPrice: '获取价格',
+  searchNews: '搜索新闻',
+}
+
+// Thinking block component
+function ThinkingBlock({ message }: { message: Message }) {
+  const [expanded, setExpanded] = useState(false)
+  const hasThinkingContent = message.thinkingContent && message.thinkingContent.trim().length > 0
+
+  if (!hasThinkingContent && !message.isThinking) return null
+
+  // During thinking - pulsing indicator
+  if (message.isThinking) {
+    return (
+      <div className="thinking-block">
+        <div className="thinking-indicator">
+          <Sparkles className="thinking-indicator-icon" />
+          <span>
+            正在思考{message.thinkingDuration && message.thinkingDuration > 0 ? ` · ${message.thinkingDuration}秒` : ''}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  // After thinking - collapsible block
+  if (!hasThinkingContent) return null
+
+  return (
+    <div className="thinking-block">
+      <div className="thinking-header" onClick={() => setExpanded(!expanded)}>
+        <ChevronRight className={cn('thinking-chevron', expanded && 'thinking-chevron-expanded')} />
+        <span>已深度思考（用时 {message.thinkingDuration || 0} 秒）</span>
+      </div>
+      <div className={cn(
+        'thinking-content-wrapper',
+        expanded ? 'thinking-content-expanded' : 'thinking-content-collapsed'
+      )}>
+        <div className="thinking-content">
+          {message.thinkingContent}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 interface ChatMessageProps {
   message: Message
@@ -20,7 +62,6 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message, onFeedback, onRegenerate }: ChatMessageProps) {
   const [copied, setCopied] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content)
@@ -32,14 +73,31 @@ export function ChatMessage({ message, onFeedback, onRegenerate }: ChatMessagePr
   const isAssistant = message.role === 'assistant'
 
   return (
-    <div
-      className={cn('message', message.role)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <div className={cn('message', message.role)}>
+      {/* Tool calls display - inline chips for assistant messages */}
+      {isAssistant && message.toolCalls && message.toolCalls.length > 0 && (
+        <div className="tool-calls">
+          {message.toolCalls.map((tc, index) => (
+            <span key={index} className="tool-call">
+              {tc.status === 'calling' ? (
+                <Loader2 className="tool-call-icon animate-spin" />
+              ) : (
+                <Wrench className="tool-call-icon" />
+              )}
+              <span className="tool-call-name">
+                {TOOL_DISPLAY_NAMES[tc.toolName] || tc.toolName}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Thinking block - ChatGPT-style collapsible */}
+      {isAssistant && <ThinkingBlock message={message} />}
+
       <div className="message-content">
-        {message.isTyping && !message.content ? (
-          <span className="loading-text">[加载中] 正在查询...</span>
+        {message.isTyping && !message.content && !message.isThinking ? (
+          <span className="loading-text">正在思考...</span>
         ) : (
           <>
             {isAssistant ? (
@@ -74,99 +132,65 @@ export function ChatMessage({ message, onFeedback, onRegenerate }: ChatMessagePr
         )}
       </div>
 
-      {/* Action buttons - show on hover, hide during typing */}
-      {!message.isTyping && isHovered && (
-        <div className={cn('message-actions', isUser ? 'message-actions-user' : 'message-actions-assistant')}>
-          {/* Copy button - for all messages */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="message-action-btn"
-                onClick={handleCopy}
-              >
-                {copied ? (
-                  <Check className="h-4 w-4 text-green-500" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{copied ? '已复制' : '复制'}</p>
-            </TooltipContent>
-          </Tooltip>
-
-          {/* Assistant-only buttons */}
-          {isAssistant && (
-            <>
-              {/* Regenerate button */}
-              {onRegenerate && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="message-action-btn"
-                      onClick={() => onRegenerate(message.id)}
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>重新生成</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-
-              {/* Thumbs up */}
-              {onFeedback && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        'message-action-btn',
-                        message.feedback === 'up' && 'message-action-btn-active'
-                      )}
-                      onClick={() => onFeedback(message.id, 'up')}
-                    >
-                      <ThumbsUp className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>有帮助</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-
-              {/* Thumbs down */}
-              {onFeedback && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        'message-action-btn',
-                        message.feedback === 'down' && 'message-action-btn-active'
-                      )}
-                      onClick={() => onFeedback(message.id, 'down')}
-                    >
-                      <ThumbsDown className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>没帮助</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </>
+      {/* Action buttons - always reserve space, show on hover */}
+      <div className={cn(
+        'message-actions',
+        isUser ? 'message-actions-user' : 'message-actions-assistant',
+        message.isTyping && 'message-actions-hidden'
+      )}>
+        {/* Copy button */}
+        <button
+          className="message-action-btn"
+          onClick={handleCopy}
+          title={copied ? '已复制' : '复制'}
+        >
+          {copied ? (
+            <Check className="action-icon" />
+          ) : (
+            <Copy className="action-icon" />
           )}
-        </div>
-      )}
+        </button>
+
+        {/* Assistant-only buttons */}
+        {isAssistant && (
+          <>
+            {onRegenerate && (
+              <button
+                className="message-action-btn"
+                onClick={() => onRegenerate(message.id)}
+                title="重新生成"
+              >
+                <RefreshCw className="action-icon" />
+              </button>
+            )}
+
+            {onFeedback && (
+              <>
+                <button
+                  className={cn(
+                    'message-action-btn',
+                    message.feedback === 'up' && 'message-action-btn-active'
+                  )}
+                  onClick={() => onFeedback(message.id, 'up')}
+                  title="有帮助"
+                >
+                  <ThumbsUp className="action-icon" />
+                </button>
+                <button
+                  className={cn(
+                    'message-action-btn',
+                    message.feedback === 'down' && 'message-action-btn-active'
+                  )}
+                  onClick={() => onFeedback(message.id, 'down')}
+                  title="没帮助"
+                >
+                  <ThumbsDown className="action-icon" />
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { storage } from '@/lib/storage'
 import type { Conversation, Message } from '@/types'
 
@@ -7,6 +7,9 @@ export function useConversations() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
+  // Flag to skip loading messages after creating a new conversation
+  const skipNextLoadRef = useRef(false)
 
   // Load conversations on mount
   useEffect(() => {
@@ -18,9 +21,15 @@ export function useConversations() {
     loadConversations()
   }, [])
 
-  // Load messages when conversation changes
+  // Load messages when conversation changes (but skip for newly created conversations)
   useEffect(() => {
     const loadMessages = async () => {
+      // Skip loading for newly created conversations - caller manages messages
+      if (skipNextLoadRef.current) {
+        skipNextLoadRef.current = false
+        return
+      }
+
       if (currentConversationId) {
         const data = await storage.getMessages(currentConversationId)
         setMessages(data)
@@ -39,7 +48,11 @@ export function useConversations() {
 
     const conversation = await storage.createConversation(title)
     setConversations(prev => [conversation, ...prev])
+
+    // Mark to skip next message load - caller will manage messages for new conversation
+    skipNextLoadRef.current = true
     setCurrentConversationId(conversation.id)
+
     return conversation
   }, [])
 
@@ -58,11 +71,12 @@ export function useConversations() {
     setCurrentConversationId(id)
   }, [])
 
-  const addMessage = useCallback(async (message: Message) => {
-    if (!currentConversationId) return
+  const addMessage = useCallback(async (message: Message, conversationId?: string) => {
+    const targetId = conversationId || currentConversationId
+    if (!targetId) return
 
-    await storage.addMessage(currentConversationId, message)
-    setMessages(prev => [...prev, message])
+    await storage.addMessage(targetId, message)
+    // Note: Don't call setMessages here - caller handles UI state
   }, [currentConversationId])
 
   const updateMessage = useCallback(async (messageId: string, updates: Partial<Message>) => {
@@ -73,6 +87,13 @@ export function useConversations() {
       prev.map(m => (m.id === messageId ? { ...m, ...updates } : m))
     )
   }, [currentConversationId])
+
+  const updateConversation = useCallback(async (id: string, updates: Partial<Conversation>) => {
+    await storage.updateConversation(id, updates)
+    setConversations(prev =>
+      prev.map(c => (c.id === id ? { ...c, ...updates, updatedAt: Date.now() } : c))
+    )
+  }, [])
 
   const startNewChat = useCallback(() => {
     setCurrentConversationId(null)
@@ -112,6 +133,7 @@ export function useConversations() {
     isLoading,
     groupedConversations,
     createConversation,
+    updateConversation,
     deleteConversation,
     selectConversation,
     addMessage,

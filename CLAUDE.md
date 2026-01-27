@@ -207,6 +207,33 @@ export OPENAI_MODEL_NAME=other-model
 2. ChromaDB 运行：`chroma run --path ./.chroma`
 3. 设置 `OLLAMA_BASE_URL=http://localhost:11434`
 
+## Web 前端特性
+
+### Thinking Block（思考块）
+
+支持 `<think>` 标签的模型（如 Qwen3）会在前端显示 ChatGPT 风格的思考块：
+
+- **思考中**：显示脉冲动画 "正在思考 · Xs"
+- **思考完成**：可折叠块 "已深度思考（用时 X 秒）"，点击展开查看思考过程
+- 前端解析 `<think>` 标签，不显示原始标签文本
+
+### 上下文对话（Session 管理）
+
+前端通过 `backendSessionId` 维护与后端的对话上下文：
+
+- 每个前端 Conversation 关联一个后端 Session
+- `sessionId` 存储在 localStorage，随请求发送
+- 后端内存存储 Session，重启后失效
+- Session 失效时显示提示，引导用户开始新对话
+
+**多用户隔离**：不同浏览器有各自的 localStorage，完全隔离。
+
+### Typography
+
+- 字体：系统字体栈（system-ui, -apple-system, Segoe UI...）
+- 正文：16px，行高 1.75
+- 段落间距：1em
+
 ## 代码约定
 
 - 严格模式 TypeScript (`strict: true`)

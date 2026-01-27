@@ -5,6 +5,14 @@ export interface Conversation {
   title: string
   createdAt: number
   updatedAt: number
+  backendSessionId?: string // 后端 session ID，用于保持对话上下文
+}
+
+export interface ToolCall {
+  toolName: string
+  args: unknown
+  result?: unknown
+  status: 'calling' | 'done'
 }
 
 export interface Message {
@@ -15,6 +23,11 @@ export interface Message {
   feedback?: 'up' | 'down'
   attachments?: Attachment[]
   isTyping?: boolean
+  toolCalls?: ToolCall[]
+  // Thinking block fields (for models that use <think> tags)
+  thinkingContent?: string
+  isThinking?: boolean
+  thinkingDuration?: number
 }
 
 export interface Attachment {
