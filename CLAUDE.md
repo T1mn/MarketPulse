@@ -5,7 +5,7 @@ MarketPulse v2.0 - 企业级金融智能助手
 ## 项目概述
 
 TypeScript 全栈金融智能助手，提供：
-- AI 驱动的金融分析（DeepSeek / OpenAI / Ollama）
+- AI 驱动的金融分析（DeepSeek / OpenAI / Ollama / **vLLM 自部署模型**）
 - Tool Calling - LLM 自动调用 Binance/新闻 API 获取实时数据
 - RAG 知识库 - 基于 ChromaDB 的金融知识检索增强生成
 - 实时加密货币行情（Binance API）
@@ -93,14 +93,20 @@ bun install
 ## 环境变量
 
 必需（至少一个 LLM）：
-- `DEEPSEEK_API_KEY` - DeepSeek API（主力）
-- `OPENAI_API_KEY` - OpenAI API（备用）
+- `DEEPSEEK_API_KEY` - DeepSeek API
+- `OPENAI_API_KEY` - OpenAI API（或 vLLM 任意值）
+
+OpenAI 兼容服务（vLLM / LocalAI 等）：
+- `OPENAI_BASE_URL` - 自定义服务地址（如 `http://172.26.190.100:1995`）
+- `OPENAI_MODEL_NAME` - 模型名称（如 `qwen3-8b`）
 
 可选：
 - `OLLAMA_BASE_URL` - 本地 Ollama 服务（也用于 RAG embedding）
 - `FINNHUB_API_KEY` - 金融新闻数据
 - `CHROMA_HOST` - ChromaDB 地址（默认 http://localhost:8000）
 - `PORT` - 服务器端口（默认 3000）
+
+> **注意**：`export` 设置的环境变量会覆盖 `.env` 文件中的定义
 
 ## API 端点
 
@@ -128,6 +134,63 @@ LLM 自动识别用户意图并调用工具：
 
 - 调用模式：自动（LLM 决定何时调用）
 - 最大步数：5（`maxSteps: 5`）
+
+### Tool Calling 工作原理
+
+```
+用户消息 → AI SDK 发送 tools 定义给 LLM → LLM 决定调用哪个工具
+    → vLLM 解析工具调用格式 → AI SDK 执行工具 → 结果返回 LLM → 生成最终回答
+```
+
+## vLLM 自部署模型
+
+支持通过 vLLM 部署本地模型（如 Qwen3-8B），需启用 Tool Calling 支持。
+
+### vLLM 启动命令
+
+```bash
+nohup python -m vllm.entrypoints.openai.api_server \
+    --model /path/to/Qwen3-8B \
+    --served-model-name qwen3-8b \
+    --host 0.0.0.0 \
+    --port 1995 \
+    --trust-remote-code \
+    --dtype bfloat16 \
+    --max-model-len 16384 \
+    --gpu-memory-utilization 0.85 \
+    --enable-auto-tool-choice \
+    --tool-call-parser hermes \
+    > vllm.log 2>&1 &
+```
+
+### 关键参数说明
+
+| 参数 | 说明 |
+|------|------|
+| `--enable-auto-tool-choice` | 启用自动工具选择（**必需**） |
+| `--tool-call-parser hermes` | 工具调用格式解析器（**必需**） |
+| `--served-model-name` | API 中使用的模型名称 |
+| `--dtype bfloat16` | 使用 BF16 精度减少显存 |
+
+### 环境变量配置
+
+```bash
+# .env 文件
+OPENAI_BASE_URL=http://172.26.190.100:1995
+OPENAI_MODEL_NAME=qwen3-8b
+OPENAI_API_KEY=any-value  # vLLM 不校验 API Key
+
+# 或通过 export 覆盖（优先级更高）
+export OPENAI_MODEL_NAME=other-model
+```
+
+### 推荐模型
+
+| 模型 | 说明 |
+|------|------|
+| Qwen3-8B | 支持 Tool Calling，已包含指令微调 |
+| Qwen2.5-7B-Instruct | 稳定，Tool Calling 支持好 |
+| ❌ Qwen2.5-VL-7B | 视觉模型，Tool Calling 支持有限 |
 
 ## RAG 知识库
 

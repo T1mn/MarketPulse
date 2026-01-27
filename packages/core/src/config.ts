@@ -16,6 +16,8 @@ export function loadConfig(): AppConfig {
       defaultProvider: (process.env.LLM_PROVIDER as LLMProvider) ?? DEFAULT_LLM_PROVIDER,
       deepseekApiKey: process.env.DEEPSEEK_API_KEY,
       openaiApiKey: process.env.OPENAI_API_KEY,
+      openaiBaseUrl: process.env.OPENAI_BASE_URL,      // 自定义 OpenAI 兼容服务地址
+      openaiModelName: process.env.OPENAI_MODEL_NAME,  // 自定义模型名称
       ollamaBaseUrl: process.env.OLLAMA_BASE_URL,
     },
     server: {

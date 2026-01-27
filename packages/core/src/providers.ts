@@ -36,24 +36,42 @@ export function createDeepSeekProvider(): ProviderInstance | null {
 }
 
 /**
- * Create OpenAI provider
+ * Create OpenAI-compatible provider
+ *
+ * 支持任何 OpenAI 兼容服务（OpenAI / vLLM / LocalAI 等）
+ *
+ * 环境变量：
+ *   OPENAI_API_KEY     - API 密钥（vLLM/LocalAI 可设任意值或留空）
+ *   OPENAI_BASE_URL    - 服务地址（可选，不设则使用 OpenAI 官方）
+ *   OPENAI_MODEL_NAME  - 模型名称（可选，默认 gpt-4o-mini）
+ *
+ * 示例 - 使用 vLLM 部署的 Qwen：
+ *   OPENAI_BASE_URL=http://172.26.190.100:1995
+ *   OPENAI_MODEL_NAME=qwen2.5-vl-7b
+ *
+ * 示例 - 使用 OpenAI 官方：
+ *   OPENAI_API_KEY=sk-xxx
  */
 export function createOpenAIProvider(): ProviderInstance | null {
   const config = getConfig()
   const apiKey = config.llm.openaiApiKey
+  const baseURL = config.llm.openaiBaseUrl
+  const modelName = config.llm.openaiModelName
 
-  if (!apiKey) {
+  // 需要 API Key 或自定义 baseURL（vLLM 等不需要真实 key）
+  if (!apiKey && !baseURL) {
     return null
   }
 
   const client = createOpenAI({
-    apiKey,
+    apiKey: apiKey || 'no-key-required',  // vLLM 等不需要真实 API Key
+    ...(baseURL && { baseURL: baseURL.endsWith('/v1') ? baseURL : `${baseURL}/v1` }),
   })
 
   return {
     id: 'openai',
     client,
-    model: 'gpt-4o-mini',
+    model: modelName || 'gpt-4o-mini',
   }
 }
 
@@ -121,9 +139,11 @@ export function getAvailableProviders(): LLMProvider[] {
 
 /**
  * Get default provider (first available in priority order)
+ *
+ * 优先级：openai（支持自定义 vLLM 等）> deepseek > ollama
  */
 export function getDefaultProvider(): ProviderInstance | undefined {
-  const priority: LLMProvider[] = ['deepseek', 'ollama', 'openai']
+  const priority: LLMProvider[] = ['openai', 'deepseek', 'ollama']
 
   for (const id of priority) {
     const provider = providers.get(id)

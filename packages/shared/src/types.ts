@@ -84,6 +84,8 @@ export interface AppConfig {
     defaultProvider: LLMProvider
     deepseekApiKey?: string
     openaiApiKey?: string
+    openaiBaseUrl?: string      // 自定义 OpenAI 兼容服务地址（vLLM / LocalAI 等）
+    openaiModelName?: string    // 自定义模型名称
     ollamaBaseUrl?: string
   }
   server: {
@@ -97,6 +99,8 @@ export const AppConfigSchema = z.object({
     defaultProvider: LLMProviderSchema,
     deepseekApiKey: z.string().optional(),
     openaiApiKey: z.string().optional(),
+    openaiBaseUrl: z.string().optional(),      // 自定义 OpenAI 兼容服务地址
+    openaiModelName: z.string().optional(),    // 自定义模型名称
     ollamaBaseUrl: z.string().optional(),
   }),
   server: z.object({
