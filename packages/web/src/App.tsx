@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { TrendingUp } from 'lucide-react'
+import { TrendingUp, Menu } from 'lucide-react'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Sidebar } from '@/components/Sidebar'
 import { ChatMessage } from '@/components/ChatMessage'
 import { ChatInput } from '@/components/ChatInput'
 import { useConversations } from '@/hooks/useConversations'
+import { useTheme } from '@/hooks/useTheme'
+import { cn } from '@/lib/utils'
 import type { Message, ToolCall } from '@/types'
 import '@/index.css'
 
@@ -80,6 +82,8 @@ function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const { theme, toggleTheme } = useTheme()
 
   const {
     conversations,
@@ -485,9 +489,19 @@ function App() {
           onSelectConversation={selectConversation}
           onDeleteConversation={deleteConversation}
           onNewChat={startNewChat}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
 
-        <div className="app-container">
+        {/* Mobile Toggle Button */}
+        <button
+          className={cn('mobile-sidebar-toggle', sidebarOpen && 'mobile-sidebar-toggle-hidden')}
+          onClick={() => setSidebarOpen(true)}
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+
+        <div className={cn('app-container', sidebarOpen && 'app-container-sidebar-expanded')}>
           <div className="main-content">
             <main
               className="messages-container"

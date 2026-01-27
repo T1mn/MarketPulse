@@ -1,5 +1,4 @@
-import { Plus, Trash2, MessageSquare, PanelLeftClose, PanelLeft } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Plus, Trash2, MessageSquare, PanelLeftClose, PanelLeft, TrendingUp, Sun, Moon } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -16,6 +15,8 @@ interface SidebarProps {
   onSelectConversation: (id: string) => void
   onDeleteConversation: (id: string) => void
   onNewChat: () => void
+  theme: 'light' | 'dark'
+  onToggleTheme: () => void
 }
 
 export function Sidebar({
@@ -26,125 +27,126 @@ export function Sidebar({
   onSelectConversation,
   onDeleteConversation,
   onNewChat,
+  theme,
+  onToggleTheme,
 }: SidebarProps) {
   return (
-    <div className="sidebar-wrapper">
-      {/* Collapsed sidebar strip */}
-      <div className={cn('sidebar-collapsed', isOpen && 'sidebar-collapsed-hidden')}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="sidebar-toggle-btn"
-              onClick={onToggle}
-            >
-              <PanelLeft className="h-5 w-5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>展开侧边栏</p>
-          </TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="sidebar-toggle-btn"
-              onClick={onNewChat}
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>新对话</p>
-          </TooltipContent>
-        </Tooltip>
-      </div>
-
-      {/* Overlay for mobile */}
+    <>
+      {/* Mobile Overlay */}
       {isOpen && (
         <div
-          className="sidebar-overlay"
+          className="manus-sidebar-overlay"
           onClick={onToggle}
           aria-hidden="true"
         />
       )}
 
-      {/* Expanded sidebar */}
-      <aside className={cn('sidebar', isOpen && 'sidebar-open')}>
-        <div className="sidebar-header">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="sidebar-toggle-btn"
-                onClick={onToggle}
-              >
-                <PanelLeftClose className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>收起侧边栏</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="sidebar-toggle-btn"
-            onClick={() => {
-              onNewChat()
-            }}
-          >
-            <Plus className="h-5 w-5" />
-          </Button>
+      <aside className={cn('manus-sidebar', isOpen && 'manus-sidebar-expanded')}>
+      {/* Logo Area */}
+      <div className="manus-sidebar-logo">
+        <div className="manus-sidebar-brand">
+          <TrendingUp className="manus-sidebar-brand-icon" />
+          {isOpen && <span className="manus-sidebar-brand-text">MarketPulse</span>}
         </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              className="manus-sidebar-toggle"
+              onClick={onToggle}
+            >
+              {isOpen ? (
+                <PanelLeftClose className="manus-sidebar-icon" />
+              ) : (
+                <PanelLeft className="manus-sidebar-icon" />
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{isOpen ? '收起侧边栏' : '展开侧边栏'}</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
 
-        <nav className="sidebar-content">
+      {/* Action Area */}
+      <div className="manus-sidebar-actions">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              className="manus-sidebar-action-btn"
+              onClick={onNewChat}
+            >
+              <Plus className="manus-sidebar-icon" />
+              {isOpen && <span>新建对话</span>}
+            </button>
+          </TooltipTrigger>
+          {!isOpen && (
+            <TooltipContent side="right">
+              <p>新建对话</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </div>
+
+      {/* Conversation List */}
+      <div className="manus-sidebar-section">
+        {isOpen && (
+          <div className="manus-sidebar-section-header">
+            <span>对话历史</span>
+          </div>
+        )}
+        <nav className="manus-sidebar-nav">
           {conversations.length === 0 ? (
-            <div className="sidebar-empty">
-              <MessageSquare className="h-8 w-8 mb-2 opacity-50" />
-              <p>暂无对话记录</p>
+            <div className="manus-sidebar-empty">
+              {isOpen ? (
+                <>
+                  <MessageSquare className="manus-sidebar-empty-icon" />
+                  <p>暂无对话</p>
+                </>
+              ) : (
+                <MessageSquare className="manus-sidebar-icon manus-sidebar-empty-icon-collapsed" />
+              )}
             </div>
           ) : (
             conversations.map((group) => (
-              <div key={group.label} className="conversation-group">
-                <h3 className="conversation-group-label">{group.label}</h3>
-                <ul className="conversation-list">
+              <div key={group.label} className="manus-sidebar-group">
+                {isOpen && (
+                  <div className="manus-sidebar-group-label">{group.label}</div>
+                )}
+                <ul className="manus-sidebar-list">
                   {group.conversations.map((conv) => (
                     <li key={conv.id}>
-                      <button
-                        className={cn(
-                          'conversation-item',
-                          currentConversationId === conv.id && 'conversation-item-active'
-                        )}
-                        onClick={() => {
-                          onSelectConversation(conv.id)
-                        }}
-                      >
-                        <MessageSquare className="h-4 w-4 flex-shrink-0" />
-                        <span className="conversation-title">{conv.title}</span>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              className="conversation-delete"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onDeleteConversation(conv.id)
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>删除对话</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            className={cn(
+                              'manus-sidebar-item',
+                              currentConversationId === conv.id && 'manus-sidebar-item-active'
+                            )}
+                            onClick={() => onSelectConversation(conv.id)}
+                          >
+                            <MessageSquare className="manus-sidebar-icon" />
+                            {isOpen && (
+                              <>
+                                <span className="manus-sidebar-item-title">{conv.title}</span>
+                                <button
+                                  className="manus-sidebar-item-delete"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    onDeleteConversation(conv.id)
+                                  }}
+                                >
+                                  <Trash2 className="manus-sidebar-icon-sm" />
+                                </button>
+                              </>
+                            )}
+                          </button>
+                        </TooltipTrigger>
+                        {!isOpen && (
+                          <TooltipContent side="right">
+                            <p>{conv.title}</p>
                           </TooltipContent>
-                        </Tooltip>
-                      </button>
+                        )}
+                      </Tooltip>
                     </li>
                   ))}
                 </ul>
@@ -152,7 +154,32 @@ export function Sidebar({
             ))
           )}
         </nav>
-      </aside>
-    </div>
+      </div>
+
+      {/* Bottom Area - Theme Toggle */}
+      <div className="manus-sidebar-footer">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              className="manus-sidebar-theme-btn"
+              onClick={onToggleTheme}
+            >
+              {theme === 'dark' ? (
+                <Sun className="manus-sidebar-icon" />
+              ) : (
+                <Moon className="manus-sidebar-icon" />
+              )}
+              {isOpen && <span>{theme === 'dark' ? '浅色模式' : '深色模式'}</span>}
+            </button>
+          </TooltipTrigger>
+          {!isOpen && (
+            <TooltipContent side="right">
+              <p>{theme === 'dark' ? '浅色模式' : '深色模式'}</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </div>
+    </aside>
+    </>
   )
 }
