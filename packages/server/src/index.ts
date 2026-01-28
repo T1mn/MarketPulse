@@ -33,6 +33,14 @@ import {
   fetchAllRSS,
   startRSSScheduler,
   getRSSSources,
+  initStockDB,
+  getStockStats,
+  fetchAllStocks,
+  startStockScheduler,
+  getStockSymbols,
+  getStockPrice,
+  getStockPrices,
+  getAllStockPrices,
 } from '@marketpulse/core'
 
 // Initialize
@@ -56,6 +64,21 @@ async function initialize() {
     startRSSScheduler()
   } catch (error) {
     console.error('[Server] News initialization failed:', error)
+  }
+
+  // Initialize Stock SQLite database
+  try {
+    initStockDB()
+    console.log('[Server] Stock database initialized')
+
+    // Initial stock fetch
+    const stockResult = await fetchAllStocks()
+    console.log(`[Server] Initial stock fetch: ${stockResult.total} fetched, ${stockResult.inserted} new`)
+
+    // Start stock scheduler
+    startStockScheduler()
+  } catch (error) {
+    console.error('[Server] Stock initialization failed:', error)
   }
 
   // Initialize RAG
@@ -97,6 +120,12 @@ app.get('/', (c) => {
         price: '/api/v1/market/price/:symbol',
         prices: '/api/v1/market/prices',
         klines: '/api/v1/market/klines/:symbol',
+      },
+      stock: {
+        price: '/api/v1/stock/price/:symbol',
+        prices: '/api/v1/stock/prices',
+        stats: '/api/v1/stock/stats',
+        refresh: '/api/v1/stock/refresh',
       },
       news: {
         list: '/api/v1/news',
@@ -296,6 +325,76 @@ app.post('/api/v1/news/refresh', async (c) => {
       data: {
         total: result.total,
         inserted: result.inserted,
+      },
+    })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// ==================== Stock ====================
+
+// Get single stock price
+app.get('/api/v1/stock/price/:symbol', (c) => {
+  const symbol = c.req.param('symbol')
+  try {
+    const price = getStockPrice(symbol)
+    if (!price) {
+      return c.json({ success: false, error: `Stock ${symbol} not found` }, 404)
+    }
+    return c.json({ success: true, data: price })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Get multiple stock prices
+app.get('/api/v1/stock/prices', (c) => {
+  const symbolsParam = c.req.query('symbols')
+
+  try {
+    let prices
+    if (symbolsParam) {
+      const symbols = symbolsParam.split(',').map((s) => s.trim())
+      prices = getStockPrices(symbols)
+    } else {
+      prices = getAllStockPrices()
+    }
+    return c.json({ success: true, data: prices })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Stock stats
+app.get('/api/v1/stock/stats', (c) => {
+  try {
+    const stats = getStockStats()
+    const symbols = getStockSymbols()
+    return c.json({
+      success: true,
+      data: {
+        ...stats,
+        trackedSymbols: symbols,
+        fetchInterval: parseInt(process.env.STOCK_FETCH_INTERVAL || '5', 10),
+        retentionDays: parseInt(process.env.STOCK_RETENTION_DAYS || '7', 10),
+      },
+    })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Manual stock refresh
+app.post('/api/v1/stock/refresh', async (c) => {
+  try {
+    const result = await fetchAllStocks()
+    return c.json({
+      success: true,
+      data: {
+        total: result.total,
+        inserted: result.inserted,
+        failed: result.failed,
       },
     })
   } catch (error) {
