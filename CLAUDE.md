@@ -9,6 +9,8 @@ TypeScript 全栈金融智能助手，提供：
 - Tool Calling - LLM 自动调用 Binance/新闻 API 获取实时数据
 - RAG 知识库 - 基于 ChromaDB 的金融知识检索增强生成
 - 实时加密货币行情（Binance API）
+- 美股行情（Yahoo Finance）
+- 贵金属行情（黄金、白银 via Yahoo Finance）
 - 金融新闻聚合（RSS + Finnhub）
 - 多端支持（Web / TUI / Desktop）
 
@@ -129,7 +131,9 @@ LLM 自动识别用户意图并调用工具：
 
 | 工具 | 功能 | 数据源 |
 |------|------|--------|
-| `getMarketPrice` | 获取加密货币实时价格（最多 10 个交易对并行） | Binance API |
+| `getCryptoPrice` | 获取加密货币实时价格（最多 10 个交易对并行） | Binance API |
+| `getStockPrice` | 获取美股实时价格（最多 10 个股票并行） | Yahoo Finance |
+| `getCommodityPrice` | 获取贵金属价格（黄金/白银期货、ETF） | Yahoo Finance |
 | `searchNews` | 搜索金融新闻 | RSS + Finnhub |
 
 - 调用模式：自动（LLM 决定何时调用）
@@ -231,7 +235,8 @@ export OPENAI_MODEL_NAME=other-model
 ### Typography
 
 - 字体：系统字体栈（system-ui, -apple-system, Segoe UI...）
-- 正文：16px，行高 1.75
+- 正文：14px，行高 1.5
+- 标题：24px（欢迎页）
 - 段落间距：1em
 
 ## 代码约定
