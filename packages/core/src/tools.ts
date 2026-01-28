@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { getPrices } from './market'
 import { searchNews, getNews } from './news'
 import { getStockPrices, getAllStockPrices } from './stock'
+import { getCommoditySymbols, DEFAULT_COMMODITY_SYMBOLS } from './stock-fetcher'
 
 /**
  * Get crypto price tool (Binance)
@@ -138,6 +139,64 @@ export const searchNewsTool = tool({
 })
 
 /**
+ * Get commodity price tool (Gold, Silver via Yahoo Finance)
+ */
+export const getCommodityPriceTool = tool({
+  description: '获取贵金属（黄金、白银）的实时价格。数据源：Yahoo Finance。当用户询问黄金、白银、贵金属、Gold、Silver 的价格时调用此工具。可用代码：GC=F（黄金期货）、SI=F（白银期货）、GLD（黄金ETF）、SLV（白银ETF）。',
+  parameters: z.object({
+    symbols: z.array(z.string()).min(1).max(10).optional()
+      .describe('贵金属代码数组，如 ["GC=F", "SI=F"]。不提供则返回所有跟踪的贵金属价格。'),
+  }),
+  execute: async ({ symbols }) => {
+    try {
+      // 如果没有指定，返回所有默认贵金属
+      const querySymbols = symbols && symbols.length > 0 ? symbols : getCommoditySymbols()
+      const results = getStockPrices(querySymbols)
+
+      if (results.length === 0) {
+        return {
+          error: '未找到贵金属数据，可能数据尚未抓取或代码无效。可用代码：GC=F（黄金期货）、SI=F（白银期货）、GLD（黄金ETF）、SLV（白银ETF）',
+          results: [],
+        }
+      }
+
+      return {
+        error: null,
+        results: results.map(r => ({
+          symbol: r.symbol,
+          name: getCommodityName(r.symbol),
+          price: r.price,
+          changePercent: r.changePercent,
+          changeAmount: r.changeAmount,
+          previousClose: r.previousClose,
+          dayHigh: r.dayHigh,
+          dayLow: r.dayLow,
+          fetchedAt: r.fetchedAt,
+        })),
+      }
+    } catch (error) {
+      return {
+        error: `获取贵金属价格失败: ${error instanceof Error ? error.message : '未知错误'}`,
+        results: [],
+      }
+    }
+  },
+})
+
+/**
+ * 获取贵金属的中文名称
+ */
+function getCommodityName(symbol: string): string {
+  const names: Record<string, string> = {
+    'GC=F': '黄金期货 (COMEX)',
+    'SI=F': '白银期货 (COMEX)',
+    'GLD': '黄金ETF (SPDR)',
+    'SLV': '白银ETF (iShares)',
+  }
+  return names[symbol] || symbol
+}
+
+/**
  * Backward compatibility: getMarketPrice as alias for getCryptoPrice
  */
 export const getMarketPriceTool = getCryptoPriceTool
@@ -148,6 +207,7 @@ export const getMarketPriceTool = getCryptoPriceTool
 export const tools = {
   getCryptoPrice: getCryptoPriceTool,
   getStockPrice: getStockPriceTool,
+  getCommodityPrice: getCommodityPriceTool,
   searchNews: searchNewsTool,
   // Backward compatibility
   getMarketPrice: getMarketPriceTool,
