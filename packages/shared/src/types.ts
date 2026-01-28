@@ -60,7 +60,7 @@ export const ApiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
   })
 
 /**
- * Market data types
+ * Market data types (Crypto - Binance)
  */
 export interface MarketPrice {
   symbol: string
@@ -74,6 +74,37 @@ export const MarketPriceSchema = z.object({
   price: z.number(),
   change24h: z.number(),
   timestamp: z.number(),
+})
+
+/**
+ * Stock price types (US Stocks - Yahoo Finance)
+ */
+export interface StockPrice {
+  symbol: string
+  price: number
+  changePercent: number | null
+  changeAmount: number | null
+  previousClose: number | null
+  openPrice: number | null
+  dayHigh: number | null
+  dayLow: number | null
+  volume: number | null
+  marketCap: number | null
+  fetchedAt: number
+}
+
+export const StockPriceSchema = z.object({
+  symbol: z.string(),
+  price: z.number(),
+  changePercent: z.number().nullable(),
+  changeAmount: z.number().nullable(),
+  previousClose: z.number().nullable(),
+  openPrice: z.number().nullable(),
+  dayHigh: z.number().nullable(),
+  dayLow: z.number().nullable(),
+  volume: z.number().nullable(),
+  marketCap: z.number().nullable(),
+  fetchedAt: z.number(),
 })
 
 /**
