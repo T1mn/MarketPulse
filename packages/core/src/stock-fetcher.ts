@@ -27,6 +27,16 @@ export const DEFAULT_STOCK_SYMBOLS = [
   'ORCL',   // Oracle
 ]
 
+/**
+ * 默认贵金属/大宗商品列表
+ */
+export const DEFAULT_COMMODITY_SYMBOLS = [
+  'GC=F',   // Gold Futures (黄金期货)
+  'SI=F',   // Silver Futures (白银期货)
+  'GLD',    // SPDR Gold Shares (黄金 ETF)
+  'SLV',    // iShares Silver Trust (白银 ETF)
+]
+
 // 定时器引用
 let schedulerInterval: ReturnType<typeof setInterval> | null = null
 
@@ -39,6 +49,24 @@ export function getStockSymbols(): string[] {
     return envSymbols.split(',').map((s) => s.trim().toUpperCase())
   }
   return DEFAULT_STOCK_SYMBOLS
+}
+
+/**
+ * 获取贵金属/大宗商品列表
+ */
+export function getCommoditySymbols(): string[] {
+  const envSymbols = process.env.COMMODITY_SYMBOLS
+  if (envSymbols) {
+    return envSymbols.split(',').map((s) => s.trim().toUpperCase())
+  }
+  return DEFAULT_COMMODITY_SYMBOLS
+}
+
+/**
+ * 获取所有需要抓取的符号（股票 + 贵金属）
+ */
+export function getAllSymbols(): string[] {
+  return [...getStockSymbols(), ...getCommoditySymbols()]
 }
 
 /**
@@ -73,12 +101,12 @@ async function fetchSingleStock(symbol: string): Promise<StockRecord | null> {
 }
 
 /**
- * 抓取所有配置的股票
+ * 抓取所有配置的股票和贵金属
  */
 export async function fetchAllStocks(
-  symbols: string[] = getStockSymbols()
+  symbols: string[] = getAllSymbols()
 ): Promise<{ total: number; inserted: number; failed: string[] }> {
-  console.log(`[StockFetcher] Starting fetch for ${symbols.length} stocks...`)
+  console.log(`[StockFetcher] Starting fetch for ${symbols.length} symbols...`)
 
   const results = await Promise.allSettled(symbols.map((symbol) => fetchSingleStock(symbol)))
 
