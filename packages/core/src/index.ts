@@ -15,13 +15,18 @@ export * from './tools'
 // Config
 export * from './config'
 
-// Market Data
+// Market Data (Crypto)
 export * from './market'
 
 // News
 export * from './news'
 export * from './news-store'
 export * from './rss-fetcher'
+
+// Stock Data (US Stocks)
+export * from './stock'
+export * from './stock-store'
+export * from './stock-fetcher'
 
 // RAG
 export * from './rag'

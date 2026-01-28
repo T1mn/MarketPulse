@@ -24,6 +24,7 @@
     "ai": "^4.0.0",
     "chromadb": "3.2.2",
     "ollama-ai-provider": "1.2.0",
+    "yahoo-finance2": "^3.13.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

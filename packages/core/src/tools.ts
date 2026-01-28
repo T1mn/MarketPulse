@@ -6,12 +6,13 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { getPrices } from './market'
 import { searchNews, getNews } from './news'
+import { getStockPrices, getAllStockPrices } from './stock'
 
 /**
- * Get current market price tool
+ * Get crypto price tool (Binance)
  */
-export const getMarketPriceTool = tool({
-  description: '获取指定加密货币的当前市场价格。支持单个或多个交易对（最多10个）。',
+export const getCryptoPriceTool = tool({
+  description: '获取加密货币的实时价格（如 BTC、ETH）。数据源：Binance。当用户询问比特币、以太坊等加密货币的价格时调用此工具。',
   parameters: z.object({
     symbols: z.array(z.string()).min(1).max(10).describe('交易对符号数组，如 ["BTCUSDT", "ETHUSDT"]'),
   }),
@@ -37,6 +38,57 @@ export const getMarketPriceTool = tool({
     } catch (error) {
       return {
         error: `获取价格失败: ${error instanceof Error ? error.message : '未知错误'}`,
+        results: [],
+      }
+    }
+  },
+})
+
+/**
+ * Get stock price tool (Yahoo Finance)
+ */
+export const getStockPriceTool = tool({
+  description: '获取美股股票的实时价格（如 AAPL、MSFT、GOOGL）。数据源：Yahoo Finance。当用户询问苹果、微软、谷歌等美股公司的股票价格时调用此工具。',
+  parameters: z.object({
+    symbols: z.array(z.string()).min(1).max(10).describe('股票代码数组，如 ["AAPL", "MSFT", "GOOGL"]'),
+  }),
+  execute: async ({ symbols }) => {
+    if (symbols.length > 10) {
+      return {
+        error: '一次最多查询 10 个股票，请分批查询',
+        results: [],
+      }
+    }
+
+    try {
+      // 如果没有指定股票，返回所有跟踪的股票
+      const results = symbols.length > 0 ? getStockPrices(symbols) : getAllStockPrices()
+
+      if (results.length === 0) {
+        return {
+          error: '未找到股票数据，可能数据尚未抓取或股票代码无效',
+          results: [],
+        }
+      }
+
+      return {
+        error: null,
+        results: results.map(r => ({
+          symbol: r.symbol,
+          price: r.price,
+          changePercent: r.changePercent,
+          changeAmount: r.changeAmount,
+          previousClose: r.previousClose,
+          dayHigh: r.dayHigh,
+          dayLow: r.dayLow,
+          volume: r.volume,
+          marketCap: r.marketCap,
+          fetchedAt: r.fetchedAt,
+        })),
+      }
+    } catch (error) {
+      return {
+        error: `获取股票价格失败: ${error instanceof Error ? error.message : '未知错误'}`,
         results: [],
       }
     }
@@ -86,11 +138,19 @@ export const searchNewsTool = tool({
 })
 
 /**
+ * Backward compatibility: getMarketPrice as alias for getCryptoPrice
+ */
+export const getMarketPriceTool = getCryptoPriceTool
+
+/**
  * All available tools for AI agents
  */
 export const tools = {
-  getMarketPrice: getMarketPriceTool,
+  getCryptoPrice: getCryptoPriceTool,
+  getStockPrice: getStockPriceTool,
   searchNews: searchNewsTool,
+  // Backward compatibility
+  getMarketPrice: getMarketPriceTool,
 }
 
 export type ToolName = keyof typeof tools
