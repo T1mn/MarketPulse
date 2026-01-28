@@ -181,7 +181,7 @@ body {
 }
 
 .messages-container::-webkit-scrollbar {
-  width: 6px;
+  width: 10px;
 }
 
 .messages-container::-webkit-scrollbar-track {
@@ -190,7 +190,7 @@ body {
 
 .messages-container::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 3px;
+  border-radius: 5px;
 }
 
 .messages-container::-webkit-scrollbar-thumb:hover {
@@ -805,7 +805,7 @@ body {
 }
 
 .manus-sidebar-nav::-webkit-scrollbar {
-  width: 4px;
+  width: 8px;
 }
 
 .manus-sidebar-nav::-webkit-scrollbar-track {
@@ -814,7 +814,7 @@ body {
 
 .manus-sidebar-nav::-webkit-scrollbar-thumb {
   background: #d4d4d4;
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
 .manus-sidebar-nav::-webkit-scrollbar-thumb:hover {
