@@ -8,6 +8,7 @@ import { getPrices } from './market'
 import { searchNews, getNews } from './news'
 import { getStockPrices, getAllStockPrices } from './stock'
 import { getCommoditySymbols, DEFAULT_COMMODITY_SYMBOLS } from './stock-fetcher'
+import { searchTweetsInDB, getTopTweetsFromDB, getTwitterStats } from './twitter-store'
 
 /**
  * Get crypto price tool (Binance)
@@ -202,6 +203,82 @@ function getCommodityName(symbol: string): string {
 export const getMarketPriceTool = getCryptoPriceTool
 
 /**
+ * Search Twitter/X tool
+ * 搜索推文并按加权分数排序
+ */
+export const searchTwitterTool = tool({
+  description: '搜索 Twitter/X 推文，获取社交媒体上关于加密货币、股票、金融话题的讨论。当用户询问 Twitter 上的讨论、社交媒体情绪、推特上怎么说时调用此工具。结果按互动量（点赞、评论、转发）加权排序。',
+  parameters: z.object({
+    query: z.string().describe('搜索关键词，如 "Bitcoin"、"BTC"、"crypto"'),
+    limit: z.number().min(1).max(20).optional().default(10).describe('返回结果数量，默认10条'),
+    sortBy: z.enum(['weighted', 'recent']).optional().default('weighted').describe('排序方式：weighted（互动加权）或 recent（最新）'),
+  }),
+  execute: async ({ query, limit = 10, sortBy = 'weighted' }) => {
+    try {
+      let results
+
+      if (sortBy === 'weighted') {
+        // 使用全文搜索并按加权分数排序
+        results = searchTweetsInDB(query, { limit })
+      } else {
+        // 按时间排序的搜索
+        results = searchTweetsInDB(query, {
+          limit,
+          sortOptions: { likeWeight: 0, replyWeight: 0, retweetWeight: 0, quoteWeight: 0 },
+        })
+      }
+
+      if (results.length === 0) {
+        // 尝试获取热门推文作为备选
+        const topTweets = getTopTweetsFromDB({ limit: 5 })
+        if (topTweets.length > 0) {
+          return {
+            error: null,
+            query,
+            results: [],
+            total: 0,
+            message: `未找到关于 "${query}" 的推文。数据库中共有 ${getTwitterStats().total} 条推文，请先导入相关推文数据。`,
+          }
+        }
+        return {
+          error: null,
+          query,
+          results: [],
+          total: 0,
+          message: '推文数据库为空，请先通过 /api/v1/twitter/import 导入推文数据。',
+        }
+      }
+
+      return {
+        error: null,
+        query,
+        results: results.map(tweet => ({
+          id: tweet.id,
+          text: tweet.text,
+          username: tweet.username,
+          name: tweet.name,
+          createdAt: tweet.createdAt,
+          likes: tweet.favoriteCount,
+          replies: tweet.replyCount,
+          retweets: tweet.retweetCount,
+          quotes: tweet.quoteCount,
+          weightedScore: tweet.weightedScore,
+          url: tweet.url,
+        })),
+        total: results.length,
+      }
+    } catch (error) {
+      return {
+        error: `搜索推文失败: ${error instanceof Error ? error.message : '未知错误'}`,
+        query,
+        results: [],
+        total: 0,
+      }
+    }
+  },
+})
+
+/**
  * All available tools for AI agents
  */
 export const tools = {
@@ -209,6 +286,7 @@ export const tools = {
   getStockPrice: getStockPriceTool,
   getCommodityPrice: getCommodityPriceTool,
   searchNews: searchNewsTool,
+  searchTwitter: searchTwitterTool,
   // Backward compatibility
   getMarketPrice: getMarketPriceTool,
 }
