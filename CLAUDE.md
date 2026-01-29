@@ -12,6 +12,7 @@ TypeScript 全栈金融智能助手，提供：
 - 美股行情（Yahoo Finance）
 - 贵金属行情（黄金、白银 via Yahoo Finance）
 - 金融新闻聚合（RSS + Finnhub）
+- **Twitter 推文抓取**（Playwright 自动化）
 - 多端支持（Web / TUI / Desktop）
 
 ## 技术栈
@@ -41,7 +42,10 @@ MarketPulse/
 │   │   │   ├── market.ts      # Binance API
 │   │   │   ├── news.ts        # 新闻聚合
 │   │   │   ├── rag.ts         # RAG 服务 (ChromaDB)
-│   │   │   └── embedding.ts   # Embedding 服务 (Ollama/OpenAI)
+│   │   │   ├── embedding.ts   # Embedding 服务 (Ollama/OpenAI)
+│   │   │   ├── twitter.ts     # Twitter 数据类型与解析
+│   │   │   ├── twitter-store.ts # Twitter SQLite 存储
+│   │   │   └── twitter-scraper.ts # Playwright 自动抓取
 │   │   └── data/knowledge/    # 预置金融知识库
 │   ├── server/     # Hono HTTP Server
 │   ├── cli/        # CLI 入口
@@ -108,6 +112,13 @@ OpenAI 兼容服务（vLLM / LocalAI 等）：
 - `CHROMA_HOST` - ChromaDB 地址（默认 http://localhost:8000）
 - `PORT` - 服务器端口（默认 3000）
 
+Twitter Scraper：
+- `TWITTER_AUTH_TOKEN` - Twitter 认证 Token（必需）
+- `TWITTER_SEARCH_QUERIES` - 抓取关键词，逗号分隔（默认 `BTC,ETH,crypto`）
+- `TWITTER_SCRAPE_INTERVAL` - 定时抓取间隔，分钟（默认 30）
+- `TWITTER_MAX_TWEETS_PER_QUERY` - 每个关键词最大推文数（默认 100）
+- `TWITTER_SCRAPE_ON_STARTUP` - 启动时立即抓取（默认 false）
+
 > **注意**：`export` 设置的环境变量会覆盖 `.env` 文件中的定义
 
 ## API 端点
@@ -124,6 +135,13 @@ OpenAI 兼容服务（vLLM / LocalAI 等）：
 | `/api/v1/news` | GET | 新闻列表 |
 | `/api/v1/news/search?q=` | GET | 搜索新闻 |
 | `/api/v1/rag/stats` | GET | RAG 知识库状态 |
+| `/api/v1/twitter/search?q=` | GET | 搜索推文 |
+| `/api/v1/twitter/top` | GET | 热门推文 |
+| `/api/v1/twitter/stats` | GET | 推文统计 |
+| `/api/v1/twitter/scrape` | POST | 手动触发抓取 |
+| `/api/v1/twitter/scraper/status` | GET | 抓取器状态 |
+| `/api/v1/twitter/scraper/start` | POST | 启动定时抓取 |
+| `/api/v1/twitter/scraper/stop` | POST | 停止定时抓取 |
 
 ## Tool Calling
 
@@ -210,6 +228,45 @@ export OPENAI_MODEL_NAME=other-model
 1. Ollama 运行 + `ollama pull nomic-embed-text`
 2. ChromaDB 运行：`chroma run --path ./.chroma`
 3. 设置 `OLLAMA_BASE_URL=http://localhost:11434`
+
+## Twitter Scraper
+
+基于 Playwright 的自动化推文抓取：
+
+- **运行模式**：Headless Chrome + 反检测配置
+- **认证方式**：Cookie auth_token 注入
+- **数据获取**：拦截 GraphQL SearchTimeline 响应
+- **排序方式**：默认 Top（热门），按相关性排序
+- **存储**：SQLite + FTS5 全文搜索
+
+### 安装浏览器
+
+```bash
+bunx playwright install chromium
+```
+
+### API 使用
+
+```bash
+# 手动触发抓取
+curl -X POST http://localhost:3000/api/v1/twitter/scrape \
+  -H "Content-Type: application/json" \
+  -d '{"queries": ["Bitcoin", "ETH"]}'
+
+# 查看抓取器状态
+curl http://localhost:3000/api/v1/twitter/scraper/status
+
+# 启动定时抓取（可指定间隔分钟数）
+curl -X POST http://localhost:3000/api/v1/twitter/scraper/start \
+  -H "Content-Type: application/json" \
+  -d '{"intervalMinutes": 30}'
+
+# 停止定时抓取
+curl -X POST http://localhost:3000/api/v1/twitter/scraper/stop
+
+# 搜索已抓取的推文
+curl "http://localhost:3000/api/v1/twitter/search?q=BTC"
+```
 
 ## Web 前端特性
 
