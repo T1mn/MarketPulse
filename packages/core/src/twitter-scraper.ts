@@ -39,9 +39,56 @@ export interface ScraperStatus {
 
 // ==================== Configuration ====================
 
+// 默认关键词分类组
+const DEFAULT_CRYPTO_KEYWORDS = ['BTC', 'ETH', 'crypto']
+const DEFAULT_ONCHAIN_SIGNALS = ['whale', 'smart money', 'onchain', 'accumulation', 'distribution']
+const DEFAULT_KOL_USERS = [
+  'elonmusk',
+  'realDonaldTrump',
+  'saylor',
+  'VitalikButerin',
+  'cz_binance',
+  'brian_armstrong',
+  'cobie',
+  'intocryptoverse',
+  'lookonchain',
+  'AltcoinDailyio',
+]
+
+/**
+ * 解析搜索查询配置
+ * 支持环境变量覆盖各分类组
+ */
+function getSearchQueries(): string[] {
+  // 如果设置了 TWITTER_SEARCH_QUERIES，直接使用（完全覆盖）
+  if (process.env.TWITTER_SEARCH_QUERIES) {
+    return process.env.TWITTER_SEARCH_QUERIES.split(',').map(s => s.trim())
+  }
+
+  // 分类组配置（支持环境变量覆盖）
+  const cryptoKeywords = process.env.TWITTER_CRYPTO_KEYWORDS
+    ? process.env.TWITTER_CRYPTO_KEYWORDS.split(',').map(s => s.trim())
+    : DEFAULT_CRYPTO_KEYWORDS
+
+  const onchainSignals = process.env.TWITTER_ONCHAIN_SIGNALS
+    ? process.env.TWITTER_ONCHAIN_SIGNALS.split(',').map(s => s.trim())
+    : DEFAULT_ONCHAIN_SIGNALS
+
+  const kolUsers = process.env.TWITTER_KOL_USERS
+    ? process.env.TWITTER_KOL_USERS.split(',').map(s => s.trim())
+    : DEFAULT_KOL_USERS
+
+  // 合并所有查询（用户名需要加 from: 前缀）
+  return [
+    ...cryptoKeywords,
+    ...onchainSignals,
+    ...kolUsers.map(user => `from:${user}`),
+  ]
+}
+
 const DEFAULT_CONFIG: ScraperConfig = {
   authToken: process.env.TWITTER_AUTH_TOKEN || 'b82beea61ffa1a9841982663051abcb037b9586a',
-  searchQueries: (process.env.TWITTER_SEARCH_QUERIES || 'BTC,ETH,crypto').split(',').map(s => s.trim()),
+  searchQueries: getSearchQueries(),
   maxTweetsPerQuery: parseInt(process.env.TWITTER_MAX_TWEETS_PER_QUERY || '100', 10),
   scrollCount: 5,
   scrollDelay: { min: 1000, max: 2000 },  // 加快滚动速度
