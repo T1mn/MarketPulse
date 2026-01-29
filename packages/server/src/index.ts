@@ -57,6 +57,7 @@ import {
   getTwitterScraperStatus,
   startTwitterScrapeScheduler,
   stopTwitterScrapeScheduler,
+  forceResetScraper,
 } from '@marketpulse/core'
 
 // Initialize
@@ -173,6 +174,7 @@ app.get('/', (c) => {
         scraperStatus: '/api/v1/twitter/scraper/status',
         scraperStart: '/api/v1/twitter/scraper/start',
         scraperStop: '/api/v1/twitter/scraper/stop',
+        scraperReset: '/api/v1/twitter/scraper/reset',
       },
     },
   })
@@ -682,6 +684,24 @@ app.post('/api/v1/twitter/scraper/stop', (c) => {
       success: true,
       data: {
         message: 'Scheduler stopped',
+        status,
+      },
+    })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Force reset scraper (for stuck recovery)
+app.post('/api/v1/twitter/scraper/reset', async (c) => {
+  try {
+    await forceResetScraper()
+
+    const status = getTwitterScraperStatus()
+    return c.json({
+      success: true,
+      data: {
+        message: 'Scraper state reset',
         status,
       },
     })

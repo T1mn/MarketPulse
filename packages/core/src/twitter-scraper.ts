@@ -34,6 +34,7 @@ export interface ScraperStatus {
   schedulerActive: boolean
   nextRunAt: number | null
   config: Partial<ScraperConfig>
+  startedAt: number | null  // 添加：抓取开始时间
 }
 
 // ==================== Configuration ====================
@@ -58,6 +59,7 @@ let scraperStatus: ScraperStatus = {
   schedulerActive: false,
   nextRunAt: null,
   config: {},
+  startedAt: null,
 }
 let schedulerInterval: ReturnType<typeof setInterval> | null = null
 
@@ -368,6 +370,7 @@ async function executeScrape(config: ScraperConfig = DEFAULT_CONFIG): Promise<Sc
 
   try {
     scraperStatus.isRunning = true
+    scraperStatus.startedAt = Date.now()
     context = await createContext(config.authToken)
 
     for (const query of config.searchQueries) {
@@ -423,6 +426,7 @@ async function executeScrape(config: ScraperConfig = DEFAULT_CONFIG): Promise<Sc
     return results
   } finally {
     scraperStatus.isRunning = false
+    scraperStatus.startedAt = null
 
     if (context) {
       await context.close()
@@ -452,6 +456,16 @@ export function startTwitterScrapeScheduler(intervalMinutes?: number): void {
   }
 
   schedulerInterval = setInterval(async () => {
+    // 超时保护：如果运行超过 10 分钟，强制重置状态
+    const SCRAPE_TIMEOUT = 10 * 60 * 1000 // 10 分钟
+    if (scraperStatus.isRunning && scraperStatus.startedAt) {
+      const runningTime = Date.now() - scraperStatus.startedAt
+      if (runningTime > SCRAPE_TIMEOUT) {
+        console.warn(`[TwitterScraper] Scraper stuck for ${Math.round(runningTime / 1000)}s, force resetting...`)
+        await forceResetScraper()
+      }
+    }
+
     if (scraperStatus.isRunning) {
       console.log('[TwitterScraper] Skipping scheduled run, scraper is already running')
       return
@@ -486,6 +500,26 @@ export function stopTwitterScrapeScheduler(): void {
     scraperStatus.nextRunAt = null
     console.log('[TwitterScraper] Scheduler stopped')
   }
+}
+
+/**
+ * 强制重置抓取器状态（用于卡死恢复）
+ */
+export async function forceResetScraper(): Promise<void> {
+  console.log('[TwitterScraper] Force resetting scraper state...')
+
+  // 重置状态
+  scraperStatus.isRunning = false
+  scraperStatus.startedAt = null
+
+  // 强制关闭浏览器
+  try {
+    await closeBrowser()
+  } catch (error) {
+    console.error('[TwitterScraper] Error closing browser during reset:', error)
+  }
+
+  console.log('[TwitterScraper] Scraper state reset complete')
 }
 
 // ==================== Public API ====================
