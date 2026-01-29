@@ -41,6 +41,22 @@ import {
   getStockPrice,
   getStockPrices,
   getAllStockPrices,
+  // Twitter
+  initTwitterDB,
+  getTwitterStats,
+  searchTweetsInDB,
+  getTopTweetsFromDB,
+  getLatestTweets,
+  getSearchQueries,
+  insertTweets,
+  parseTweetHarvestCSV,
+  DEFAULT_SORT_OPTIONS,
+  // Twitter Scraper
+  initTwitterScraper,
+  scrapeTwitter,
+  getTwitterScraperStatus,
+  startTwitterScrapeScheduler,
+  stopTwitterScrapeScheduler,
 } from '@marketpulse/core'
 
 // Initialize
@@ -79,6 +95,18 @@ async function initialize() {
     startStockScheduler()
   } catch (error) {
     console.error('[Server] Stock initialization failed:', error)
+  }
+
+  // Initialize Twitter SQLite database
+  try {
+    initTwitterDB()
+    const twitterStats = getTwitterStats()
+    console.log(`[Server] Twitter database initialized with ${twitterStats.total} tweets`)
+
+    // Initialize Twitter scraper (will auto-start scheduler if configured)
+    initTwitterScraper()
+  } catch (error) {
+    console.error('[Server] Twitter initialization failed:', error)
   }
 
   // Initialize RAG
@@ -135,6 +163,16 @@ app.get('/', (c) => {
       },
       rag: {
         stats: '/api/v1/rag/stats',
+      },
+      twitter: {
+        search: '/api/v1/twitter/search',
+        top: '/api/v1/twitter/top',
+        stats: '/api/v1/twitter/stats',
+        import: '/api/v1/twitter/import',
+        scrape: '/api/v1/twitter/scrape',
+        scraperStatus: '/api/v1/twitter/scraper/status',
+        scraperStart: '/api/v1/twitter/scraper/start',
+        scraperStop: '/api/v1/twitter/scraper/stop',
       },
     },
   })
@@ -417,6 +455,238 @@ app.get('/api/v1/rag/stats', async (c) => {
       success: false,
       error: 'RAG not initialized',
     }, 500)
+  }
+})
+
+// ==================== Twitter ====================
+
+// Search tweets with weighted scoring
+app.get('/api/v1/twitter/search', (c) => {
+  const query = c.req.query('q')
+  const limit = parseInt(c.req.query('limit') || '20', 10)
+  const likeWeight = parseFloat(c.req.query('likeWeight') || String(DEFAULT_SORT_OPTIONS.likeWeight))
+  const replyWeight = parseFloat(c.req.query('replyWeight') || String(DEFAULT_SORT_OPTIONS.replyWeight))
+  const retweetWeight = parseFloat(c.req.query('retweetWeight') || String(DEFAULT_SORT_OPTIONS.retweetWeight))
+  const quoteWeight = parseFloat(c.req.query('quoteWeight') || String(DEFAULT_SORT_OPTIONS.quoteWeight))
+
+  if (!query) {
+    return c.json({ success: false, error: 'Query parameter "q" is required' }, 400)
+  }
+
+  try {
+    const tweets = searchTweetsInDB(query, {
+      limit,
+      sortOptions: { likeWeight, replyWeight, retweetWeight, quoteWeight },
+    })
+    return c.json({
+      success: true,
+      data: tweets,
+      query,
+      total: tweets.length,
+    })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Get top tweets by weighted score
+app.get('/api/v1/twitter/top', (c) => {
+  const limit = parseInt(c.req.query('limit') || '10', 10)
+  const searchQuery = c.req.query('searchQuery')
+  const likeWeight = parseFloat(c.req.query('likeWeight') || String(DEFAULT_SORT_OPTIONS.likeWeight))
+  const replyWeight = parseFloat(c.req.query('replyWeight') || String(DEFAULT_SORT_OPTIONS.replyWeight))
+  const retweetWeight = parseFloat(c.req.query('retweetWeight') || String(DEFAULT_SORT_OPTIONS.retweetWeight))
+  const quoteWeight = parseFloat(c.req.query('quoteWeight') || String(DEFAULT_SORT_OPTIONS.quoteWeight))
+
+  try {
+    const tweets = getTopTweetsFromDB({
+      limit,
+      searchQuery,
+      sortOptions: { likeWeight, replyWeight, retweetWeight, quoteWeight },
+    })
+    return c.json({
+      success: true,
+      data: tweets,
+      total: tweets.length,
+    })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Get latest tweets
+app.get('/api/v1/twitter/latest', (c) => {
+  const limit = parseInt(c.req.query('limit') || '20', 10)
+  const username = c.req.query('username')
+
+  try {
+    const tweets = getLatestTweets({ limit, username })
+    return c.json({
+      success: true,
+      data: tweets,
+      total: tweets.length,
+    })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Twitter stats
+app.get('/api/v1/twitter/stats', (c) => {
+  try {
+    const stats = getTwitterStats()
+    const queries = getSearchQueries()
+    return c.json({
+      success: true,
+      data: {
+        ...stats,
+        searchQueries: queries,
+        retentionDays: parseInt(process.env.TWITTER_RETENTION_DAYS || '7', 10),
+      },
+    })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Import tweets from CSV (tweet-harvest format)
+app.post('/api/v1/twitter/import', async (c) => {
+  try {
+    const contentType = c.req.header('content-type') || ''
+
+    let csvContent: string
+    let searchQuery: string | undefined
+
+    if (contentType.includes('multipart/form-data')) {
+      // Handle file upload
+      const formData = await c.req.formData()
+      const file = formData.get('file') as File | null
+      searchQuery = formData.get('searchQuery') as string | null || undefined
+
+      if (!file) {
+        return c.json({ success: false, error: 'No file provided. Send CSV file as "file" field.' }, 400)
+      }
+
+      csvContent = await file.text()
+    } else if (contentType.includes('application/json')) {
+      // Handle JSON with CSV content
+      const body = await c.req.json<{ csv: string; searchQuery?: string }>()
+      if (!body.csv) {
+        return c.json({ success: false, error: 'Missing "csv" field in JSON body' }, 400)
+      }
+      csvContent = body.csv
+      searchQuery = body.searchQuery
+    } else {
+      // Handle raw CSV
+      csvContent = await c.req.text()
+      searchQuery = c.req.query('searchQuery')
+    }
+
+    // Parse CSV
+    const tweets = parseTweetHarvestCSV(csvContent)
+
+    if (tweets.length === 0) {
+      return c.json({
+        success: false,
+        error: 'No valid tweets found in CSV. Ensure it has columns: id, text, username, favorite_count, reply_count, etc.',
+      }, 400)
+    }
+
+    // Insert into database
+    const inserted = insertTweets(tweets, searchQuery)
+
+    return c.json({
+      success: true,
+      data: {
+        parsed: tweets.length,
+        inserted,
+        searchQuery: searchQuery || null,
+      },
+    })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Manual trigger scrape
+app.post('/api/v1/twitter/scrape', async (c) => {
+  try {
+    const body = await c.req.json<{ queries?: string[] }>().catch(() => ({}))
+    const queries = body.queries
+
+    console.log('[Server] Manual Twitter scrape triggered', queries ? `for: ${queries.join(', ')}` : '')
+
+    const results = await scrapeTwitter(queries)
+
+    const totalCollected = results.reduce((sum, r) => sum + r.total, 0)
+    const totalInserted = results.reduce((sum, r) => sum + r.inserted, 0)
+    const errors = results.filter(r => r.error)
+
+    return c.json({
+      success: errors.length === 0,
+      data: {
+        results,
+        summary: {
+          queries: results.length,
+          totalCollected,
+          totalInserted,
+          errors: errors.length,
+        },
+      },
+    })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Get scraper status
+app.get('/api/v1/twitter/scraper/status', (c) => {
+  try {
+    const status = getTwitterScraperStatus()
+    return c.json({
+      success: true,
+      data: status,
+    })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Start scraper scheduler
+app.post('/api/v1/twitter/scraper/start', async (c) => {
+  try {
+    const body = await c.req.json<{ intervalMinutes?: number }>().catch(() => ({}))
+
+    startTwitterScrapeScheduler(body.intervalMinutes)
+
+    const status = getTwitterScraperStatus()
+    return c.json({
+      success: true,
+      data: {
+        message: 'Scheduler started',
+        status,
+      },
+    })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
+  }
+})
+
+// Stop scraper scheduler
+app.post('/api/v1/twitter/scraper/stop', (c) => {
+  try {
+    stopTwitterScrapeScheduler()
+
+    const status = getTwitterScraperStatus()
+    return c.json({
+      success: true,
+      data: {
+        message: 'Scheduler stopped',
+        status,
+      },
+    })
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500)
   }
 })
 
