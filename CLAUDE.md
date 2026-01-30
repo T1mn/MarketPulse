@@ -114,7 +114,10 @@ OpenAI 兼容服务（vLLM / LocalAI 等）：
 
 Twitter Scraper：
 - `TWITTER_AUTH_TOKEN` - Twitter 认证 Token（必需）
-- `TWITTER_SEARCH_QUERIES` - 抓取关键词，逗号分隔（默认 `BTC,ETH,crypto`）
+- `TWITTER_SEARCH_QUERIES` - 抓取查询，逗号分隔，支持 Twitter 搜索语法（默认 `BTC,ETH,crypto`）
+  - 关键词搜索：`BTC`、`ETH`、`crypto`
+  - 用户推文：`from:elonmusk`、`from:realDonaldTrump`、`from:saylor` 等
+  - 当前默认配置：`BTC,ETH,crypto,from:elonmusk,from:realDonaldTrump,from:saylor,from:BillGates,from:JeffBezos,from:WarrenBuffett`
 - `TWITTER_SCRAPE_INTERVAL` - 定时抓取间隔，分钟（默认 30）
 - `TWITTER_MAX_TWEETS_PER_QUERY` - 每个关键词最大推文数（默认 100）
 - `TWITTER_SCRAPE_ON_STARTUP` - 启动时立即抓取（默认 false）
