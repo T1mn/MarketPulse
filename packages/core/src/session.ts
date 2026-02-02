@@ -6,7 +6,7 @@ import { streamText } from 'ai'
 import type { ChatMessage, Session, LLMProvider } from '@marketpulse/shared'
 import { generateId } from '@marketpulse/shared'
 import { getProvider, getDefaultProvider } from './providers'
-import { tools } from './tools'
+import { createSessionTools } from './tools'
 import { retrieveKnowledge } from './rag'
 
 /**
@@ -119,6 +119,9 @@ export async function* streamChat(
     content: m.content,
   }))
 
+  // Create session-aware tools
+  const sessionTools = createSessionTools(sessionId)
+
   // Stream response with tools
   const { fullStream } = await streamText({
     model: provider.client(provider.model),
@@ -128,13 +131,24 @@ export async function* streamChat(
 你可以使用以下工具获取实时数据：
 - getCryptoPrice: 获取加密货币实时价格（BTC、ETH 等）。数据源：Binance
 - getStockPrice: 获取美股股票实时价格（AAPL、MSFT、GOOGL 等）。数据源：Yahoo Finance
+- getCommodityPrice: 获取贵金属价格（黄金、白银）
 - searchNews: 获取金融新闻资讯
+- searchTwitter: 搜索本地缓存的 Twitter 推文
+- triggerTwitterScrape: 触发后台抓取 Twitter 推文
 
 【重要】工具调用规则：
 1. 用户询问比特币、以太坊等加密货币价格 → 调用 getCryptoPrice
 2. 用户询问苹果、微软、谷歌等美股股票价格 → 调用 getStockPrice
-3. 用户询问新闻、资讯、消息、动态、发生了什么 → 调用 searchNews
-4. 不要猜测数据，必须通过工具获取真实信息
+3. 用户询问黄金、白银价格 → 调用 getCommodityPrice
+4. 用户询问新闻、资讯、消息、动态、发生了什么 → 调用 searchNews
+5. 用户询问推特/Twitter 讨论 → 调用 searchTwitter
+6. 不要猜测数据，必须通过工具获取真实信息
+
+【Twitter 推文搜索工作流】
+1. 首先调用 searchTwitter 搜索本地缓存的推文
+2. 如果结果为空或太少（< 3 条），告诉用户："本地没有关于 [关键词] 的推文缓存。是否需要后台抓取？抓取完成后会自动通知您。"
+3. 用户确认后，调用 triggerTwitterScrape 触发后台抓取
+4. 当用户说"推文抓取已完成"、"分析"、"查看结果"等，表示抓取已经完成，直接调用 searchTwitter 搜索并分析结果，不要再询问是否抓取
 
 【股票代码提示】
 - 苹果 = AAPL, 微软 = MSFT, 谷歌 = GOOGL, 亚马逊 = AMZN
@@ -142,7 +156,7 @@ export async function* streamChat(
 - 英特尔 = INTC, 网飞 = NFLX, Salesforce = CRM, 甲骨文 = ORCL
 ${knowledgeContext}
 请用中文回答，结合知识库信息和工具返回的真实数据进行分析。`,
-    tools,
+    tools: sessionTools,
     maxSteps: 5, // 允许多轮工具调用
   })
 

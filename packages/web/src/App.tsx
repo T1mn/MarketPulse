@@ -4,8 +4,13 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { Sidebar } from '@/components/Sidebar'
 import { ChatMessage } from '@/components/ChatMessage'
 import { ChatInput } from '@/components/ChatInput'
+import { ScrapeNotification } from '@/components/ScrapeNotification'
+import { SearchHistoryDropdown } from '@/components/SearchHistoryDropdown'
 import { useConversations } from '@/hooks/useConversations'
 import { useTheme } from '@/hooks/useTheme'
+import { useSSEEvents } from '@/hooks/useSSEEvents'
+import { useSearchHistory } from '@/hooks/useSearchHistory'
+import type { ScrapeCompleteEvent, ScrapeErrorEvent } from '@/hooks/useSSEEvents'
 import { cn } from '@/lib/utils'
 import type { Message, ToolCall } from '@/types'
 import '@/index.css'
@@ -82,8 +87,13 @@ function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const sendRef = useRef<(text?: string) => Promise<void>>()
 
   const { theme, toggleTheme } = useTheme()
+  const { history, addSearch, removeSearch, clearHistory } = useSearchHistory()
+
+  // Scrape notification state
+  const [scrapeEvent, setScrapeEvent] = useState<ScrapeCompleteEvent | ScrapeErrorEvent | null>(null)
 
   const {
     conversations,
@@ -103,6 +113,53 @@ function App() {
   // Get current conversation's backend session ID
   const currentConversation = conversations.find(c => c.id === currentConversationId)
   const backendSessionId = currentConversation?.backendSessionId
+
+  // Handle scrape complete - add AI message to chat
+  const handleScrapeComplete = useCallback((data: ScrapeCompleteEvent) => {
+    setScrapeEvent(data) // Still show notification
+
+    // Save each query to search history
+    data.queries.forEach(query => addSearch(query))
+
+    // Add an assistant message to inform user
+    const queryText = data.queries.join('、')
+    const aiMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: `**推文抓取完成！** 已获取 **${data.totalCollected}** 条关于「${queryText}」的推文${data.totalInserted > 0 ? `（新增 ${data.totalInserted} 条）` : ''}。\n\n回复「分析」或点击右下角通知的「查看结果」，我会立即为你分析这些推文的内容和情绪。`,
+      timestamp: Date.now(),
+    }
+    setMessages(prev => [...prev, aiMessage])
+
+    // Also persist to storage
+    if (currentConversationId) {
+      addMessage(aiMessage, currentConversationId)
+    }
+  }, [currentConversationId, addMessage, setMessages, addSearch])
+
+  // SSE events for scrape notifications
+  useSSEEvents({
+    sessionId: backendSessionId,
+    onScrapeComplete: handleScrapeComplete,
+    onScrapeError: (data) => setScrapeEvent(data),
+  })
+
+  // Handle "View Results" click from scrape notification
+  const handleViewScrapeResults = useCallback((queries: string[]) => {
+    const queryText = queries.join('、')
+    // Be explicit: tell AI the scrape is DONE and to search NOW
+    sendRef.current?.(`推文抓取已完成。请直接调用 searchTwitter 搜索「${queryText}」并分析结果。`)
+  }, [])
+
+  // Handle re-search from history (trigger new scrape)
+  const handleReSearch = useCallback((query: string) => {
+    sendRef.current?.(`请重新抓取关于「${query}」的推文`)
+  }, [])
+
+  // Handle view cached from history (search local database)
+  const handleViewCached = useCallback((query: string) => {
+    sendRef.current?.(`请直接调用 searchTwitter 搜索「${query}」并分析本地缓存的推文。`)
+  }, [])
 
   // Smart scroll: only auto-scroll if user is near bottom
   const handleScroll = useCallback(() => {
@@ -310,6 +367,9 @@ function App() {
       setIsLoading(false)
     }
   }
+
+  // Keep sendRef in sync
+  sendRef.current = send
 
   const handleFeedback = async (messageId: string, feedback: 'up' | 'down') => {
     await updateMessage(messageId, { feedback })
@@ -535,15 +595,26 @@ function App() {
 
             <footer className="input-area">
               <div className="input-wrapper">
-                {messages.length === 0 && (
-                  <div className="suggestions">
-                    {SUGGESTIONS.map((s, i) => (
-                      <button key={i} onClick={() => send(s.full)} className="suggestion">
-                        {s.text}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  {messages.length === 0 ? (
+                    <div className="suggestions" style={{ marginBottom: 0 }}>
+                      {SUGGESTIONS.map((s, i) => (
+                        <button key={i} onClick={() => send(s.full)} className="suggestion">
+                          {s.text}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+                  <SearchHistoryDropdown
+                    history={history}
+                    onReSearch={handleReSearch}
+                    onViewCached={handleViewCached}
+                    onRemove={removeSearch}
+                    onClear={clearHistory}
+                  />
+                </div>
 
                 <ChatInput
                   value={input}
@@ -555,6 +626,13 @@ function App() {
             </footer>
           </div>
         </div>
+
+        {/* Scrape notification */}
+        <ScrapeNotification
+          event={scrapeEvent}
+          onDismiss={() => setScrapeEvent(null)}
+          onViewResults={handleViewScrapeResults}
+        />
       </div>
     </TooltipProvider>
   )

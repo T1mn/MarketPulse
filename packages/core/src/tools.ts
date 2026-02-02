@@ -9,6 +9,7 @@ import { searchNews, getNews } from './news'
 import { getStockPrices, getAllStockPrices } from './stock'
 import { getCommoditySymbols, DEFAULT_COMMODITY_SYMBOLS } from './stock-fetcher'
 import { searchTweetsInDB, getTopTweetsFromDB, getTwitterStats } from './twitter-store'
+import { registerScrapeTask, executeScrapeTask } from './scrape-task-manager'
 
 /**
  * Get crypto price tool (Binance)
@@ -279,6 +280,31 @@ export const searchTwitterTool = tool({
 })
 
 /**
+ * Trigger Twitter scrape tool (requires sessionId for SSE notification)
+ */
+export function createTriggerTwitterScrapeTool(sessionId: string) {
+  return tool({
+    description: '触发后台抓取 Twitter 推文。当用户询问推特/Twitter 相关内容，但 searchTwitter 返回结果为空或太少（< 3 条），且用户确认需要抓取时调用此工具。调用后推文将在后台抓取，完成后系统会自动通知用户。',
+    parameters: z.object({
+      queries: z.array(z.string()).min(1).max(5).describe('要搜索的关键词数组，如 ["Solana", "SOL"]'),
+    }),
+    execute: async ({ queries }) => {
+      const taskId = `scrape_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      registerScrapeTask(taskId, sessionId, queries)
+      executeScrapeTask(taskId).catch(err =>
+        console.error(`[triggerTwitterScrape] Task ${taskId} error:`, err)
+      )
+      return {
+        success: true,
+        taskId,
+        queries,
+        message: `已启动后台抓取任务（${queries.join(', ')}），完成后会自动通知用户。`,
+      }
+    },
+  })
+}
+
+/**
  * All available tools for AI agents
  */
 export const tools = {
@@ -291,4 +317,14 @@ export const tools = {
   getMarketPrice: getMarketPriceTool,
 }
 
-export type ToolName = keyof typeof tools
+/**
+ * Create tools with session context (for session-aware tools like triggerTwitterScrape)
+ */
+export function createSessionTools(sessionId: string) {
+  return {
+    ...tools,
+    triggerTwitterScrape: createTriggerTwitterScrapeTool(sessionId),
+  }
+}
+
+export type ToolName = keyof typeof tools | 'triggerTwitterScrape'

@@ -58,6 +58,9 @@ import {
   startTwitterScrapeScheduler,
   stopTwitterScrapeScheduler,
   forceResetScraper,
+  // Scrape Task Manager (SSE)
+  subscribeSSE,
+  unsubscribeSSE,
 } from '@marketpulse/core'
 
 // Initialize
@@ -176,6 +179,7 @@ app.get('/', (c) => {
         scraperStop: '/api/v1/twitter/scraper/stop',
         scraperReset: '/api/v1/twitter/scraper/reset',
       },
+      events: '/api/v1/events/:sessionId',
     },
   })
 })
@@ -710,6 +714,52 @@ app.post('/api/v1/twitter/scraper/reset', async (c) => {
   }
 })
 
+// ==================== SSE Events ====================
+
+// SSE endpoint for real-time events (scrape notifications, etc.)
+app.get('/api/v1/events/:sessionId', async (c) => {
+  const sessionId = c.req.param('sessionId')
+
+  return streamSSE(c, async (stream) => {
+    let running = true
+
+    // SSE writer for scrape task manager
+    const writer = (event: string, data: unknown) => {
+      if (!running) return
+      stream.writeSSE({
+        event,
+        data: JSON.stringify(data),
+      }).catch(() => { running = false })
+    }
+
+    // Subscribe to events
+    subscribeSSE(sessionId, writer)
+
+    // Send connected event
+    await stream.writeSSE({
+      event: 'connected',
+      data: JSON.stringify({ sessionId, timestamp: Date.now() }),
+    })
+
+    // Keep stream alive with heartbeat loop (every 5s to stay within idle timeout)
+    while (running) {
+      await new Promise(r => setTimeout(r, 5000))
+      if (!running) break
+      try {
+        await stream.writeSSE({
+          event: 'heartbeat',
+          data: JSON.stringify({ timestamp: Date.now() }),
+        })
+      } catch {
+        running = false
+      }
+    }
+
+    // Cleanup
+    unsubscribeSSE(sessionId, writer)
+  })
+})
+
 // ==================== Server ====================
 
 // Start server
@@ -725,6 +775,7 @@ export function startServer() {
     port,
     hostname: host,
     fetch: app.fetch,
+    idleTimeout: 255, // Max value for SSE long-lived connections
   })
 }
 
