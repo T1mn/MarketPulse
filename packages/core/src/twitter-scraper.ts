@@ -420,7 +420,9 @@ async function executeScrape(config: ScraperConfig = DEFAULT_CONFIG): Promise<Sc
     scraperStatus.startedAt = Date.now()
     context = await createContext(config.authToken)
 
-    for (const query of config.searchQueries) {
+    const queries = config.searchQueries
+    for (let i = 0; i < queries.length; i++) {
+      const query = queries[i]
       let lastError: string | undefined
       let result: ScrapeResult | null = null
 
@@ -460,7 +462,7 @@ async function executeScrape(config: ScraperConfig = DEFAULT_CONFIG): Promise<Sc
       }
 
       // 每个 query 之间等待，避免被限流
-      if (config.searchQueries.indexOf(query) < config.searchQueries.length - 1) {
+      if (i < queries.length - 1) {
         const queryDelay = 2000 + Math.random() * 2000 // 2-4秒
         console.log(`[TwitterScraper] Waiting ${Math.round(queryDelay / 1000)}s before next query...`)
         await new Promise(resolve => setTimeout(resolve, queryDelay))

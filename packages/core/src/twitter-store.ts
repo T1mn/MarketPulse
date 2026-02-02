@@ -434,7 +434,7 @@ function rowToTweet(row: TweetDBRow): Tweet {
     id: row.id,
     text: row.text,
     username: row.username,
-    name: row.name || '',
+    name: row.name ?? '',
     createdAt: row.created_at,
     favoriteCount: row.favorite_count,
     replyCount: row.reply_count,

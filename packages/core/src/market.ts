@@ -64,7 +64,7 @@ export async function getKlines(
     throw new Error(`Failed to fetch klines for ${symbol}: ${response.statusText}`)
   }
 
-  const data: any[][] = await response.json()
+  const data = await response.json() as (string | number)[][]
 
   return data.map((k) => ({
     openTime: k[0],
