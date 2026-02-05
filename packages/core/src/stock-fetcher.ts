@@ -5,9 +5,18 @@
 
 import YahooFinance from 'yahoo-finance2'
 import { insertStockPrices, cleanupOldStocks, type StockRecord } from './stock-store'
+import { getProxyUrl } from './proxy-fetch'
 
-// Initialize Yahoo Finance client
-const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] })
+// Initialize Yahoo Finance client with proxy support
+const proxyUrl = getProxyUrl()
+const yahooFinance = new YahooFinance({
+  suppressNotices: ['yahooSurvey'],
+  ...(proxyUrl && {
+    fetchOptions: {
+      agent: proxyUrl,
+    },
+  }),
+})
 
 /**
  * 默认股票列表（12 只科技股）

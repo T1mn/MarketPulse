@@ -4,6 +4,7 @@
  */
 
 import { insertNews, cleanupOldNews, type NewsRecord } from './news-store'
+import { proxyFetch } from './proxy-fetch'
 
 /**
  * RSS 源配置
@@ -80,7 +81,7 @@ function cleanText(text: string): string {
  */
 async function parseRSSFeed(source: RSSSource): Promise<NewsRecord[]> {
   try {
-    const response = await fetch(source.url, {
+    const response = await proxyFetch(source.url, {
       headers: {
         'User-Agent': 'MarketPulse/2.0 RSS Reader',
         Accept: 'application/rss+xml, application/xml, text/xml',

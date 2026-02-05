@@ -4,6 +4,7 @@
  */
 
 import type { MarketPrice } from '@marketpulse/shared'
+import { proxyFetch } from './proxy-fetch'
 
 const BINANCE_API = 'https://api.binance.com/api/v3'
 
@@ -11,7 +12,7 @@ const BINANCE_API = 'https://api.binance.com/api/v3'
  * 获取单个交易对价格
  */
 export async function getPrice(symbol: string): Promise<MarketPrice> {
-  const response = await fetch(`${BINANCE_API}/ticker/24hr?symbol=${symbol.toUpperCase()}`)
+  const response = await proxyFetch(`${BINANCE_API}/ticker/24hr?symbol=${symbol.toUpperCase()}`)
 
   if (!response.ok) {
     throw new Error(`Failed to fetch price for ${symbol}: ${response.statusText}`)
@@ -56,7 +57,7 @@ export async function getKlines(
   interval: string = '1h',
   limit: number = 100
 ): Promise<Kline[]> {
-  const response = await fetch(
+  const response = await proxyFetch(
     `${BINANCE_API}/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=${limit}`
   )
 
@@ -81,7 +82,7 @@ export async function getKlines(
  * 获取交易所信息（支持的交易对列表）
  */
 export async function getExchangeInfo(): Promise<string[]> {
-  const response = await fetch(`${BINANCE_API}/exchangeInfo`)
+  const response = await proxyFetch(`${BINANCE_API}/exchangeInfo`)
 
   if (!response.ok) {
     throw new Error('Failed to fetch exchange info')
