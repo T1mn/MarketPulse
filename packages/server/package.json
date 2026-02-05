@@ -11,7 +11,7 @@
     }
   },
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --external playwright --external playwright-core --external electron",
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "typecheck": "tsc --noEmit",
@@ -21,7 +21,15 @@
     "@hono/node-server": "^1.13.0",
     "@marketpulse/core": "workspace:*",
     "@marketpulse/shared": "workspace:*",
-    "hono": "^4.6.0"
+    "hono": "^4.6.0",
+    "@ai-sdk/deepseek": "^1.0.0",
+    "@ai-sdk/openai": "^1.0.0",
+    "ai": "^4.0.0",
+    "chromadb": "3.2.2",
+    "ollama-ai-provider": "1.2.0",
+    "playwright": "^1.40.0",
+    "yahoo-finance2": "^3.13.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
