@@ -1,0 +1,67 @@
+# MarketPulse Docker Compose
+# Production deployment for Tencent Cloud
+
+services:
+  # ChromaDB - Vector database for RAG
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: marketpulse-chromadb
+    restart: unless-stopped
+    volumes:
+      - ./data/chroma:/chroma/chroma
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+
+  # MarketPulse Server
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: marketpulse-server
+    restart: unless-stopped
+    depends_on:
+      - chromadb
+    volumes:
+      # SQLite database persistence
+      - ./data/core:/app/packages/core/data
+      # Knowledge base (read-only)
+      - ./packages/core/data/knowledge:/app/packages/core/data/knowledge:ro
+      # Playwright browsers (persistent storage for downloads)
+      - ./data/playwright:/root/.cache/ms-playwright
+    ports:
+      - "127.0.0.1:3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # ChromaDB connection (use service name)
+      - CHROMA_HOST=http://chromadb:8000
+      # vLLM connection (via FRP tunnel)
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-http://124.220.94.170:1995}
+      - OPENAI_MODEL_NAME=${OPENAI_MODEL_NAME:-qwen3-8b}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-any-value}
+      # Optional providers
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-}
+      # News API
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY:-}
+      # Twitter Scraper
+      - TWITTER_AUTH_TOKEN=${TWITTER_AUTH_TOKEN:-}
+      - TWITTER_SEARCH_QUERIES=${TWITTER_SEARCH_QUERIES:-BTC,ETH,crypto}
+      - TWITTER_SCRAPE_INTERVAL=${TWITTER_SCRAPE_INTERVAL:-30}
+      - TWITTER_MAX_TWEETS_PER_QUERY=${TWITTER_MAX_TWEETS_PER_QUERY:-100}
+      - TWITTER_SCRAPE_ON_STARTUP=${TWITTER_SCRAPE_ON_STARTUP:-false}
+      # Server config
+      - PORT=3000
+      - HOST=0.0.0.0
+      # Proxy for Twitter scraper (Clash on host)
+      - HTTP_PROXY=http://host.docker.internal:7890
+      - HTTPS_PROXY=http://host.docker.internal:7890
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3

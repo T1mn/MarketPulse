@@ -1,0 +1,46 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+**/dist
+**/.turbo
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Environment files (use docker-compose env instead)
+.env
+.env.local
+.env.*.local
+
+# Data directories (mounted as volumes)
+data/
+.chroma/
+packages/core/data/*.db
+
+# Documentation
+*.md
+!packages/core/data/knowledge/*.md
+docs/
+
+# Development files
+.worktrees/
+*.log
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+coverage/
