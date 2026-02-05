@@ -1,4 +1,5 @@
-import { Plus, Trash2, MessageSquare, PanelLeftClose, PanelLeft, TrendingUp, Sun, Moon } from 'lucide-react'
+import { Plus, Trash2, MessageSquare, PanelLeftClose, PanelLeft, Sun, Moon } from 'lucide-react'
+import { Logo } from '@/components/Logo'
 import {
   Tooltip,
   TooltipContent,
@@ -45,7 +46,7 @@ export function Sidebar({
       {/* Logo Area */}
       <div className="manus-sidebar-logo">
         <div className="manus-sidebar-brand">
-          <TrendingUp className="manus-sidebar-brand-icon" />
+          <Logo size={24} theme={theme} />
           {isOpen && <span className="manus-sidebar-brand-text">MarketPulse</span>}
         </div>
         <Tooltip>

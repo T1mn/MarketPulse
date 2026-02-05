@@ -9,7 +9,17 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 const COLLECTION_NAME = 'financial_knowledge'
-const CHROMA_HOST = process.env.CHROMA_HOST || 'http://localhost:8000'
+const CHROMA_URL = process.env.CHROMA_HOST || 'http://localhost:8000'
+
+// Parse CHROMA_URL into components for new API
+function parseChromaUrl(urlStr: string): { host: string; port: number; ssl: boolean } {
+  const url = new URL(urlStr)
+  return {
+    host: url.hostname,
+    port: parseInt(url.port) || (url.protocol === 'https:' ? 443 : 8000),
+    ssl: url.protocol === 'https:',
+  }
+}
 
 let client: ChromaClient | null = null
 let collection: Collection | null = null
@@ -33,7 +43,8 @@ export async function initRAG(): Promise<void> {
     throw new Error('No embedding provider available. Set OLLAMA_BASE_URL or OPENAI_API_KEY.')
   }
 
-  client = new ChromaClient({ path: CHROMA_HOST })
+  const chromaConfig = parseChromaUrl(CHROMA_URL)
+  client = new ChromaClient(chromaConfig)
 
   // 使用自定义 embedding function
   const embeddingFunction = new CustomEmbeddingFunction()

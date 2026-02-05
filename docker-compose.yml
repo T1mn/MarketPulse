@@ -14,6 +14,12 @@ services:
     environment:
       - IS_PERSISTENT=TRUE
       - ANONYMIZED_TELEMETRY=FALSE
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8000'"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
 
   # MarketPulse Server
   server:
@@ -23,7 +29,8 @@ services:
     container_name: marketpulse-server
     restart: unless-stopped
     depends_on:
-      - chromadb
+      chromadb:
+        condition: service_healthy
     volumes:
       # SQLite database persistence
       - ./data/core:/app/packages/core/data
@@ -56,9 +63,11 @@ services:
       # Server config
       - PORT=3000
       - HOST=0.0.0.0
-      # Proxy for Twitter scraper (Clash on host)
+      # Proxy for external requests (Binance, Twitter, etc.)
       - HTTP_PROXY=http://host.docker.internal:7890
       - HTTPS_PROXY=http://host.docker.internal:7890
+      # Exclude internal Docker network from proxy
+      - NO_PROXY=localhost,127.0.0.1,chromadb,host.docker.internal
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s

@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { TrendingUp, Menu } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Sidebar } from '@/components/Sidebar'
 import { ChatMessage } from '@/components/ChatMessage'
 import { ChatInput } from '@/components/ChatInput'
 import { ScrapeNotification } from '@/components/ScrapeNotification'
 import { SearchHistoryDropdown } from '@/components/SearchHistoryDropdown'
+import { Logo } from '@/components/Logo'
 import { useConversations } from '@/hooks/useConversations'
 import { useTheme } from '@/hooks/useTheme'
 import { useSSEEvents } from '@/hooks/useSSEEvents'
@@ -573,7 +574,7 @@ function App() {
                 {messages.length === 0 ? (
                   <div className="welcome">
                     <div className="welcome-icon">
-                      <TrendingUp strokeWidth={1.5} />
+                      <Logo size={64} theme={theme} />
                     </div>
                     <h1>MarketPulse</h1>
                     <p>智能金融助手</p>

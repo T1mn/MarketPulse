@@ -5,17 +5,11 @@
 
 import YahooFinance from 'yahoo-finance2'
 import { insertStockPrices, cleanupOldStocks, type StockRecord } from './stock-store'
-import { getProxyUrl } from './proxy-fetch'
 
-// Initialize Yahoo Finance client with proxy support
-const proxyUrl = getProxyUrl()
+// Initialize Yahoo Finance client
+// Note: yahoo-finance2 uses native fetch, proxy is handled via HTTP_PROXY env var
 const yahooFinance = new YahooFinance({
   suppressNotices: ['yahooSurvey'],
-  ...(proxyUrl && {
-    fetchOptions: {
-      agent: proxyUrl,
-    },
-  }),
 })
 
 /**
