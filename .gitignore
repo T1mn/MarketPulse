@@ -43,3 +43,6 @@ Thumbs.db
 
 # 本地计划文档
 docs/plans/
+
+# 部署文档（仅本地，不上传到服务器）
+docs/deployment-guide.md

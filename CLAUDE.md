@@ -103,7 +103,9 @@ bun install
 - `OPENAI_API_KEY` - OpenAI API（或 vLLM 任意值）
 
 OpenAI 兼容服务（vLLM / LocalAI 等）：
-- `OPENAI_BASE_URL` - 自定义服务地址（如 `http://172.26.190.100:1995`）
+- `OPENAI_BASE_URL` - 自定义服务地址
+  - 内网：`http://172.26.190.100:1995`（hw 服务器）
+  - 公网：`http://124.220.94.170:1995`（通过 frp 隧道）
 - `OPENAI_MODEL_NAME` - 模型名称（如 `qwen3-8b`）
 
 可选：
