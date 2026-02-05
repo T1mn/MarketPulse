@@ -402,6 +402,18 @@ body {
    Suggestions
    ======================================== */
 
+/* Input Top Bar - container for suggestions and search history */
+.input-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.input-top-bar-right {
+  flex-shrink: 0;
+}
+
 .suggestions {
   display: flex;
   gap: 8px;
@@ -603,6 +615,33 @@ body {
   .message-content {
     max-width: 90%;
     padding: 10px 14px;
+  }
+
+  /* Fix iOS auto-zoom on input focus (requires font-size >= 16px) */
+  .input-box textarea {
+    font-size: 16px;
+  }
+
+  /* Mobile layout for input top bar */
+  .input-top-bar {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .input-top-bar .suggestions {
+    justify-content: center;
+    order: 1;
+  }
+
+  .input-top-bar .suggestion {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  .input-top-bar-right {
+    align-self: flex-end;
+    order: 2;
   }
 }
 

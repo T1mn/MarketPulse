@@ -12,11 +12,12 @@ import { useSSEEvents } from '@/hooks/useSSEEvents'
 import { useSearchHistory } from '@/hooks/useSearchHistory'
 import type { ScrapeCompleteEvent, ScrapeErrorEvent } from '@/hooks/useSSEEvents'
 import { cn } from '@/lib/utils'
+import { generateUUID } from '@/lib/storage'
 import type { Message, ToolCall } from '@/types'
 import '@/index.css'
 
-// 新后端 API 地址
-const API_URL = 'http://localhost:3000/api/v1/chat'
+// API 地址：生产环境使用相对路径，开发环境使用 localhost
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1/chat'
 
 // Parse <think> tags from streaming text
 interface ParsedContent {
@@ -87,7 +88,7 @@ function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const sendRef = useRef<(text?: string) => Promise<void>>()
+  const sendRef = useRef<(text?: string) => Promise<void>>(() => Promise.resolve())
 
   const { theme, toggleTheme } = useTheme()
   const { history, addSearch, removeSearch, clearHistory } = useSearchHistory()
@@ -124,7 +125,7 @@ function App() {
     // Add an assistant message to inform user
     const queryText = data.queries.join('、')
     const aiMessage: Message = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       role: 'assistant',
       content: `**推文抓取完成！** 已获取 **${data.totalCollected}** 条关于「${queryText}」的推文${data.totalInserted > 0 ? `（新增 ${data.totalInserted} 条）` : ''}。\n\n回复「分析」或点击右下角通知的「查看结果」，我会立即为你分析这些推文的内容和情绪。`,
       timestamp: Date.now(),
@@ -201,7 +202,7 @@ function App() {
     }
 
     const userMessage: Message = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       role: 'user',
       content: msg,
       timestamp: Date.now(),
@@ -213,7 +214,7 @@ function App() {
     await addMessage(userMessage, conversationId)
 
     const aiMessage: Message = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       role: 'assistant',
       content: '',
       timestamp: Date.now(),
@@ -385,7 +386,7 @@ function App() {
     setMessages(prev => prev.filter(m => m.id !== messageId))
 
     const aiMessage: Message = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       role: 'assistant',
       content: '',
       timestamp: Date.now(),
@@ -595,9 +596,9 @@ function App() {
 
             <footer className="input-area">
               <div className="input-wrapper">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div className="input-top-bar">
                   {messages.length === 0 ? (
-                    <div className="suggestions" style={{ marginBottom: 0 }}>
+                    <div className="suggestions">
                       {SUGGESTIONS.map((s, i) => (
                         <button key={i} onClick={() => send(s.full)} className="suggestion">
                           {s.text}
@@ -607,13 +608,15 @@ function App() {
                   ) : (
                     <div />
                   )}
-                  <SearchHistoryDropdown
-                    history={history}
-                    onReSearch={handleReSearch}
-                    onViewCached={handleViewCached}
-                    onRemove={removeSearch}
-                    onClear={clearHistory}
-                  />
+                  <div className="input-top-bar-right">
+                    <SearchHistoryDropdown
+                      history={history}
+                      onReSearch={handleReSearch}
+                      onViewCached={handleViewCached}
+                      onRemove={removeSearch}
+                      onClear={clearHistory}
+                    />
+                  </div>
                 </div>
 
                 <ChatInput
