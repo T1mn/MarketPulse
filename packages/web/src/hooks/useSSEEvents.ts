@@ -35,7 +35,8 @@ export function useSSEEvents({ sessionId, onScrapeComplete, onScrapeError }: Use
       eventSourceRef.current.close()
     }
 
-    const eventSource = new EventSource(`http://localhost:3000/api/v1/events/${sessionId}`)
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
+    const eventSource = new EventSource(`${baseUrl}/api/v1/events/${sessionId}`)
     eventSourceRef.current = eventSource
 
     eventSource.addEventListener('scrape-complete', (e) => {

@@ -7,6 +7,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { generateUUID } from '@/lib/storage'
 import type { Attachment } from '@/types'
 
 const MAX_CHARS = 8000
@@ -63,7 +64,7 @@ export function ChatInput({
       const reader = new FileReader()
       reader.onload = () => {
         const attachment: Attachment = {
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           type: file.type.startsWith('image/') ? 'image' : 'document',
           name: file.name,
           url: reader.result as string,

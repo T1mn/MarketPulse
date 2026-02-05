@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, CheckCircle, AlertCircle, Twitter, RefreshCw } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import type { ScrapeCompleteEvent, ScrapeErrorEvent } from '@/hooks/useSSEEvents'
 
 interface ScrapeNotificationProps {

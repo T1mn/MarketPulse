@@ -113,6 +113,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh; /* Dynamic viewport height - handles mobile browser UI */
   max-width: 100%;
 }
 

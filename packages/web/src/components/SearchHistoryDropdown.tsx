@@ -20,7 +20,7 @@ export function SearchHistoryDropdown({
 }: SearchHistoryDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const [position, setPosition] = useState({ top: 0, left: 0 })
+  const [position, setPosition] = useState({ top: 0, left: 0, bottom: 0, right: 0 })
 
   // Update position when opening
   useEffect(() => {
@@ -28,6 +28,8 @@ export function SearchHistoryDropdown({
       const rect = buttonRef.current.getBoundingClientRect()
       // Open upward: position dropdown above the button
       setPosition({
+        top: 0,
+        left: 0,
         bottom: window.innerHeight - rect.top + 8,
         right: window.innerWidth - rect.right,
       })

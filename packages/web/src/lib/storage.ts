@@ -16,6 +16,22 @@
 
 import type { Conversation, Message, StorageAdapter } from '@/types'
 
+/**
+ * Generate UUID that works in non-secure contexts (HTTP)
+ * crypto.randomUUID() only works in secure contexts (HTTPS/localhost)
+ */
+export function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  // Fallback for non-secure contexts
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
 const CONVERSATIONS_KEY = 'marketpulse-conversations'
 const MESSAGES_KEY_PREFIX = 'marketpulse-messages-'
 
@@ -37,7 +53,7 @@ class LocalStorageAdapter implements StorageAdapter {
   async createConversation(title: string): Promise<Conversation> {
     const conversations = await this.getConversations()
     const newConversation: Conversation = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       title,
       createdAt: Date.now(),
       updatedAt: Date.now(),
