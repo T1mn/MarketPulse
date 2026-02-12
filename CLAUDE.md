@@ -308,6 +308,57 @@ curl "http://localhost:3000/api/v1/twitter/search?q=BTC"
 - AI prompt 使用中文
 - API key 从环境变量读取
 
+## 远程部署配置（Docker）
+
+### 服务器信息
+- 服务器: `root@124.220.94.170`
+- 应用目录: `/opt/marketpulse`
+- 域名: `chat.tonwork.fun`
+
+### 关键配置注意事项
+
+**vLLM 地址**（Docker 内必须用公网地址）:
+```bash
+# ✅ 正确 - 公网地址，Docker 内可达
+OPENAI_BASE_URL=http://124.220.94.170:1995
+
+# ❌ 错误 - 内网地址，Docker 内不可达
+OPENAI_BASE_URL=http://172.26.190.100:1995
+```
+
+**Clash 代理配置**:
+- 代理端口: `7890`，API 端口: `9090`
+- Binance 可用节点: `🇸🇬 Singapore | 01`（美国节点被 Binance 封锁）
+- 切换节点: `curl -X PUT 'http://127.0.0.1:9090/proxies/Proxies' -d '{"name":"🇸🇬 Singapore | 01"}'`
+
+**NO_PROXY 配置**（避免内部流量走代理）:
+```
+NO_PROXY=localhost,127.0.0.1,chromadb,host.docker.internal
+```
+
+### 常用运维命令
+
+```bash
+# 重启服务（会重读 .env）
+docker compose down && docker compose up -d
+
+# 仅重启容器（不重读 .env）
+docker compose restart server
+
+# 查看日志
+docker logs marketpulse-server --tail 50
+
+# 检查环境变量
+docker exec marketpulse-server env | grep -E "(OPENAI|PROXY)"
+
+# 测试 vLLM 连接
+docker exec marketpulse-server curl -s --max-time 5 http://124.220.94.170:1995/v1/models
+```
+
+### 已知问题
+
+- **RAG Embedding 不可用**: `OLLAMA_BASE_URL=localhost:11434` 在 Docker 内不可达，暂不影响聊天功能（graceful degradation）
+
 ## 扩展指南
 
 ### 添加 LLM 提供商
